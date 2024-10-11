@@ -10,7 +10,9 @@
 
 ## Overview
 
-Egomotion refers to the movement of a camera relative to its environment. In the context of event-based cameras, which capture changes in pixel intensity rather than full frames, egomotion introduces significant noise. This noise can obscure the detection of relevant motion signals in the scene, such as moving objects, making it difficult to differentiate between background motion caused by the camera's movement and dynamic objects of interest.
+Egomotion refers to the movement of a camera relative to its environment. 
+In the context of event-based cameras, which capture changes in pixel intensity rather than full frames, egomotion introduces significant noise. 
+This noise can obscure the detection of relevant motion signals in the scene, such as moving objects, making it difficult to differentiate between background motion caused by the camera's movement and dynamic objects of interest.
 
 ### The Challenge of Egomotion Suppression
 
@@ -33,18 +35,39 @@ This project uses a neural network-based method to process event-based data and 
 
 By applying these techniques, the project aims to effectively suppress egomotion while preserving meaningful motion signals from the scene.
 
-## Applications
-
-Egomotion suppression is essential in many areas:
-- **Autonomous vehicles**: Event-based cameras used for navigation must account for self-motion to focus on detecting pedestrians, vehicles, or obstacles.
-- **Robotics**: Robots often move within dynamic environments, and egomotion suppression helps them focus on relevant, external activities.
-- **Augmented and virtual reality**: In AR/VR systems, egomotion suppression can improve user experience by enhancing interaction with virtual objects while ignoring irrelevant background motion.
-
 ## Data Download
 
 You can download the necessary event-based data for this project from the following link:
 
 - [Download Event-Based Data](https://www.dropbox.com/scl/fo/rbxtjaar1evhe6vnvrp7e/AC-g2YvSKrYdmbHqVuExflM?rlkey=jrdj1qmwnj9gkdyqmdwz9aguo&st=ucpl34q4&dl=0)
 
-Please ensure you have the correct dataset for optimal results.
+## Installation
+
+1. **Clone the repository**:
+    ```sh
+    git clone https://github.com/GiuliaDAngelo/Speckegomotion.git
+    cd Speckegomotion
+    ```
+
+2. **Create a virtual environment** (optional but recommended):
+    ```sh
+    python3 -m venv venv
+    source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+    ```
+
+3. **Install the required dependencies**:
+    ```sh
+    pip install -r requirements.txt
+    ```
+
+4. **Download the event-based data** (if not already done):
+    ```markdown
+    You can download the necessary event-based data for this project from the following link:
+    [Download Event-Based Data](https://www.dropbox.com/scl/fo/rbxtjaar1evhe6vnvrp7e/AC-g2YvSKrYdmbHqVuExflM?rlkey=jrdj1qmwnj9gkdyqmdwz9aguo&st=ucpl34q4&dl=0)
+    ```
+
+5. **Run the main script**:
+    ```sh
+    python main.py
+    ```
 

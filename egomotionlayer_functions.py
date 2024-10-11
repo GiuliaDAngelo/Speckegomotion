@@ -1,18 +1,4 @@
 
-import h5py
-import sinabs.layers as sl
-import torch
-import torch.nn as nn
-import numpy as np
-import tonic
-import torchvision
-import numpy.lib.recfunctions as rf
-import matplotlib.pyplot as plt
-import os
-import cv2
-from natsort import natsorted
-from config import *
-from PIL import Image
 
 from egomotionlayer_functions import *
 import torch
