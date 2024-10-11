@@ -15,7 +15,7 @@ Steps:
 4. Save the generated frames and create videos from the resulting maps.
 '''
 import pickle
-from egomotionlayer import *
+from egomotionlayer_functions import *
 from CreateKernel import *
 from config import *
 
