@@ -14,56 +14,32 @@ Steps:
 3. Run the spiking neural network on the data.
 4. Save the generated frames and create videos from the resulting maps.
 '''
-
+import pickle
 from egomotionlayer import *
+from CreateKernel import *
+from config import *
+
+
 
 if __name__ == '__main__':
-    # Step 1: Load DoG filter
-    path_data = "dog_kernel.npy"
-    filter = load_krn(path_data)
-
-    # Step 2: Initialize the network with the loaded filter
-    net = net_def(filter)
-
-    ###################################
-    ########### LOAD EVENTS ###########
-    ###################################
-
-    # Load event-based data from a specified .npy file.
-    # This part of the script allows loading events in different formats,
-    # including from .npy files or .h5 files. We're focusing on .npy here.
-
-    filePathOrName = "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/ego_objmoving/ego_objmoving.npy"
-    # Other options to load different datasets
-    # filePathOrName = "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/onlyego/egomotion1/egomotion1.npy"
-    # filePathOrName = "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/onlyobj/onlyobj.npy"
-
-    # Define the result path
-    respath = "results/objego"
-    # respath = "results/onlyobj"
-    # respath = "results/ego"
-
     # Extract the title from the result path
     title = respath.split('/')[1]
 
-    # Load the event-based data (IEBCS format) using the parameters
-    polarity = True
-    FPSvideo = 60.0  # Frames per second
-    dur_video = 4    # Duration of video in seconds
-    tsFLAG = False   # Flag to convert timestamps to microseconds
+    # Step 1: Load DoG filter
+    dog_kernel = difference_of_gaussian(size, sigma1, sigma2)
+    filter=dog_kernel.unsqueeze(0)
+    # Step 2: Initialize the network with the loaded filter
+    net = net_def(filter)
 
-    # Load the events into frames
+    # Load event-based data from a specified .npy file.
     [frames, max_y, max_x, time_wnd_frames] = load_eventsnpy(polarity, dur_video, FPSvideo, filePathOrName, tsFLAG)
 
     # Define motion parameters
-    stimspeed = 30.0  # Speed of stimulus in pixels per second
+    # deltaT = time_wnd_frames
+    # tau = time_wnd_frames * 4
     deltaT = time_wnd_frames
-    tau = time_wnd_frames * 4
+    tau = 0.03#time_wnd_frames* 4
     alpha = np.exp(-deltaT / tau)
-
-    ###################################
-    ########### RUN NETWORK ###########
-    ###################################
 
     # Create folders for saving different types of maps (egomaps, meanmaps, etc.)
     createfld(respath, '/egomaps')
@@ -73,18 +49,18 @@ if __name__ == '__main__':
     createfld(respath, '/incmotionmaps')
 
     # Initialize the pyramid resolution
-    num_pyr = 1
     res = pyr_res(num_pyr, frames)  # Get pyramid resolution
     egomaps = torch.empty((frames.shape[0], 1, max_y, max_x), dtype=torch.int64)
-
     # Get the total number of frames
     numframes = len(frames)
-
     # Skip the first frame
     frames = frames[1:numframes, :, :, :]
 
-    # Run the network to generate egomaps
-    egomaps = run(res, filter, egomaps, net, frames, max_x, max_y, num_pyr, respath, alpha)
+    ###################################
+    ########### RUN NETWORK ###########
+    ###################################
+
+    egomaps = run(res, filter, egomaps, net, frames, max_x, max_y, alpha)
 
     # Save the generated frames and metadata
     with open(respath + '/frames.pkl', 'wb') as f:

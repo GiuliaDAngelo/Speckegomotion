@@ -1,14 +1,13 @@
 from PIL import Image
-# import matplotlib
-# matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-import torchvision.utils as vutils
-import pickle
+
 from egomotionlayer_functions import *
+import torch
+import torchvision.utils as vutils
+import matplotlib.pyplot as plt
+from config import *
 
 
-
-def run(res, filter, egomaps, net, frames, max_x, max_y, num_pyr, respath,alpha):
+def run(res, filter, egomaps, net, frames, max_x, max_y, alpha):
     cnt=0
     egomap = torch.empty((1, num_pyr, max_y, max_x), dtype=torch.float32)
     save_egomap = torch.empty((1, num_pyr, max_y, max_x), dtype=torch.float32)
@@ -37,10 +36,20 @@ def run(res, filter, egomaps, net, frames, max_x, max_y, num_pyr, respath,alpha)
 
         # sum egomaps from the pyramid + running stats for running mean
         egomap = torch.sum(egomap, dim=1, keepdim=True)
+        # show the egomap plt.draw()
+        #put flag to show the egomap
+        if show_egomap:
+            plt.imshow(egomap[0][0].cpu().detach().numpy(), cmap='jet')
+            plt.draw()
+            plt.pause(0.0001)
         [meanrunstats, varrunstats,sdrunstats] = running_stats(egomap[0][0], meanrunstats, varrunstats,alpha)
 
         # egomap - running mean activity
         incmotionmap = egomap[0][0] - meanrunstats
+        if show_netactivity:
+            plt.imshow(incmotionmap.cpu().detach().numpy(), cmap='jet')
+            plt.draw()
+            plt.pause(0.0001)
         #save results, normalise only for visualisation
         egomaps[cnt] = egomap
         save_egomap = (egomap - egomap.min()) / (egomap.max() - egomap.min())

@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import os
 import cv2
 from natsort import natsorted
+from config import *
 
 
 
