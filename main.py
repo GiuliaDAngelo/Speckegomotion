@@ -28,18 +28,17 @@ if __name__ == '__main__':
     # Step 1: Load DoG filter
     dog_kernel = difference_of_gaussian(size, sigma1, sigma2)
     filter=dog_kernel.unsqueeze(0)
-    # Step 2: Initialize the network with the loaded filter
-    net = net_def(filter)
 
     # Load event-based data from a specified .npy file.
     [frames, max_y, max_x, time_wnd_frames] = load_eventsnpy(polarity, dur_video, FPSvideo, filePathOrName, tsFLAG)
 
     # Define motion parameters
-    # deltaT = time_wnd_frames
-    # tau = time_wnd_frames * 4
-    deltaT = time_wnd_frames
-    tau = 0.03#time_wnd_frames* 4
+    deltaT = time_wnd_frames #microseconds
+    tau = time_wnd_frames * 4
     alpha = np.exp(-deltaT / tau)
+    tau_mem = time_wnd_frames* 10**-3 #tau_mem in milliseconds
+    # Step 2: Initialize the network with the loaded filter
+    net = net_def(filter, tau_mem)
 
     # Create folders for saving different types of maps (egomaps, meanmaps, etc.)
     createfld(respath, '/egomaps')
@@ -59,7 +58,7 @@ if __name__ == '__main__':
     ###################################
     ########### RUN NETWORK ###########
     ###################################
-
+    # if show_egomap or show_netactivity add colorbar
     egomaps = run(res, filter, egomaps, net, frames, max_x, max_y, alpha)
 
     # Save the generated frames and metadata

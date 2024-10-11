@@ -42,11 +42,12 @@ def h5load_data(filename):
     return data, ds_arr
 
 
-def net_def(filters):
+def net_def(filters, tau_mem):
     # define our single layer network and load the filters
     net = nn.Sequential(
         nn.Conv2d(1, filters.shape[0], filters.shape[1], bias=False),
-        sl.IAF()
+        sl.LIF(tau_mem)
+        # sl.IAF()
     )
     net[0].weight.data = filters.unsqueeze(1)
     return net

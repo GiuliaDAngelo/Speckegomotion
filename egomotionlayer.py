@@ -42,9 +42,11 @@ def run(res, filter, egomaps, net, frames, max_x, max_y, alpha):
             plt.imshow(egomap[0][0].cpu().detach().numpy(), cmap='jet')
             plt.draw()
             plt.pause(0.0001)
+
+        #running mean activity of the network
         [meanrunstats, varrunstats,sdrunstats] = running_stats(egomap[0][0], meanrunstats, varrunstats,alpha)
 
-        # egomap - running mean activity
+        # egomap - running mean activity in time
         incmotionmap = egomap[0][0] - meanrunstats
         if show_netactivity:
             plt.imshow(incmotionmap.cpu().detach().numpy(), cmap='jet')
