@@ -1,8 +1,8 @@
 
 
-# experiments = 'objego'
+experiments = 'objego'
 # experiments = 'ego'
-experiments = 'onlyobj'
+# experiments = 'onlyobj'
 
 if experiments == 'ego':
     filePathOrName = "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/ego/ego1/ego1.npy"
@@ -16,7 +16,7 @@ elif experiments == 'onlyobj':
 
 
 # Parameters kernel
-size = 30  # Size of the kernel (NxN)
+size = 27  # Size of the kernel (NxN)
 sigma1 = 0.04 * size  # Sigma for the first Gaussian
 sigma2 = 2 * size  # Sigma for the second Gaussian
 # Parameters events
@@ -28,9 +28,14 @@ tsFLAG = False  # Flag to convert timestamps to microseconds
 stimspeed = 30.0  # Speed of stimulus in pixels per second/ 1000 ms
 # Network parameters
 # make show_egomap global variable across functions
-show_egomap = True
+show_egomap = False
 show_netactivity = False
 num_pyr = 5  # number of pyramid levels
+
+
+import torch.nn.functional as F
+
+
 
 
 

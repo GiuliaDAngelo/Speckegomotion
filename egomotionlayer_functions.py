@@ -40,13 +40,31 @@ def h5load_data(filename):
         ds_arr = f[a_group_key][()]  # returns as a numpy array
         print(ds_arr)
     return data, ds_arr
+class WinnerTakesAll(nn.Module):
+    def __init__(self, k=1):
+        super(WinnerTakesAll, self).__init__()
+        self.k = k
 
+    def forward(self, x):
+        # Flatten the input except for the batch dimension
+        flat_x = x.view(x.size(0), -1)
+        # Get the top-k values and their indices
+        topk_vals, topk_indices = torch.topk(flat_x, self.k, dim=1)
+        # Create a mask of the same shape as flat_x
+        mask = torch.zeros_like(flat_x)
+        # Set the top-k values in the mask to 1
+        mask.scatter_(1, topk_indices, 1)
+        # Reshape the mask to the original input shape
+        mask = mask.view_as(x)
+        # Apply the mask to the input
+        return x * mask
 
 def net_def(filters, tau_mem):
     # define our single layer network and load the filters
     net = nn.Sequential(
         nn.Conv2d(1, filters.shape[0], filters.shape[1], bias=False),
-        sl.LIF(tau_mem)
+        sl.LIF(tau_mem),
+        WinnerTakesAll(k=1)  # Add the WTA layer here
         # sl.IAF()
     )
     net[0].weight.data = filters.unsqueeze(1)
