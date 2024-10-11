@@ -14,11 +14,8 @@ Steps:
 3. Run the spiking neural network on the data.
 4. Save the generated frames and create videos from the resulting maps.
 '''
-import pickle
-from egomotionlayer_functions import *
-from CreateKernel import *
 from config import *
-
+from egomotionlayer_functions import *
 
 
 if __name__ == '__main__':

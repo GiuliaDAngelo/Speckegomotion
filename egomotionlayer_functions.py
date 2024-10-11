@@ -1,14 +1,41 @@
 
 
 from egomotionlayer_functions import *
-import torch
 import torchvision.utils as vutils
 import matplotlib.pyplot as plt
 from config import *
+import pickle
+import numpy as np
+import h5py
+import sinabs
+import numpy.lib.recfunctions as rf
+import sinabs.layers as sl
+import torch
+import torch.nn as nn
+import torchvision
+import tonic
+from natsort import natsorted
+import os
+import cv2
 
 
+def difference_of_gaussian(size, sigma1, sigma2):
+    # Create a grid of (x, y) coordinates using PyTorch
+    x = torch.linspace(-size // 2, size // 2, size)
+    y = torch.linspace(-size // 2, size // 2, size)
+    x, y = torch.meshgrid(x, y)
 
+    # Create two Gaussian kernels with different sigmas
+    gaussian1 = (torch.exp(-(x**2 + y**2) / (2 * sigma1**2)))/(np.sqrt(2*np.pi)*sigma1)
 
+    gaussian2 = (torch.exp(-(x**2 + y**2) / (2 * sigma2**2)))/(np.sqrt(2*np.pi)*sigma2)
+
+    # Calculate Difference of Gaussian (DoG)
+    dog = gaussian1 - gaussian2
+
+    # Normalize the DoG values between 0 and 1
+    # dog_normalized = (dog - dog.min()) / (dog.max() - dog.min())
+    return dog
 
 def h5load_data(filename):
     with h5py.File(filename, "r") as f:
