@@ -1,18 +1,15 @@
 
 
-experiments = 'objego'
-# experiments = 'ego'
-# experiments = 'onlyobj'
+respath = 'results/objego/'
+# experiments = 'ego/'
+# experiments = 'onlyobj/'
 
-if experiments == 'ego':
+if respath == 'results/ego/':
     filePathOrName = "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/ego/ego1/ego1.npy"
-    respath = "results/ego"
-elif experiments == 'objego':
+elif respath == 'results/objego/':
     filePathOrName = "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/objego/objego.npy"
-    respath = "results/objego"
-elif experiments == 'onlyobj':
+elif respath == 'results/onlyobj/':
     filePathOrName = "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/onlyobj/onlyobj.npy"
-    respath = "results/onlyobj"
 
 
 # Parameters kernel
@@ -28,12 +25,11 @@ tsFLAG = False  # Flag to convert timestamps to microseconds
 stimspeed = 30.0  # Speed of stimulus in pixels per second/ 1000 ms
 # Network parameters
 # make show_egomap global variable across functions
-show_egomap = False
-show_netactivity = False
+show_egomap = True
+save_res = True
 num_pyr = 5  # number of pyramid levels
-
-
-import torch.nn.functional as F
+# Extract the title from the result path
+title = respath.split('/')[1]
 
 
 

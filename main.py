@@ -19,9 +19,9 @@ from egomotionlayer_functions import *
 
 
 if __name__ == '__main__':
-    # Extract the title from the result path
-    title = respath.split('/')[1]
 
+    # create results folders
+    create_results_folders(respath)
     # Step 1: Load DoG filter
     dog_kernel = difference_of_gaussian(size, sigma1, sigma2)
     filter=dog_kernel.unsqueeze(0)
@@ -29,50 +29,10 @@ if __name__ == '__main__':
     # Load event-based data from a specified .npy file.
     [frames, max_y, max_x, time_wnd_frames] = load_eventsnpy(polarity, dur_video, FPSvideo, filePathOrName, tsFLAG)
 
-    # Define motion parameters
-    deltaT = time_wnd_frames #microseconds
-    tau = time_wnd_frames * 4
-    alpha = np.exp(-deltaT / tau)
-    tau_mem = time_wnd_frames* 10**-3 #tau_mem in milliseconds
-    # Step 2: Initialize the network with the loaded filter
-    net = net_def(filter, tau_mem)
-
-    # Create folders for saving different types of maps (egomaps, meanmaps, etc.)
-    createfld(respath, '/egomaps')
-    createfld(respath, '/meanmaps')
-    createfld(respath, '/varmaps')
-    createfld(respath, '/sdmaps')
-    createfld(respath, '/incmotionmaps')
-
-    # Initialize the pyramid resolution
-    res = pyr_res(num_pyr, frames)  # Get pyramid resolution
-    egomaps = torch.empty((frames.shape[0], 1, max_y, max_x), dtype=torch.int64)
-    # Get the total number of frames
-    numframes = len(frames)
-    # Skip the first frame
-    frames = frames[1:numframes, :, :, :]
-
-    ###################################
-    ########### RUN NETWORK ###########
-    ###################################
     # if show_egomap or show_netactivity add colorbar
-    egomaps = run(res, filter, egomaps, net, frames, max_x, max_y, alpha)
+    run(filter, frames, max_x, max_y,time_wnd_frames)
 
-    # Save the generated frames and metadata
-    with open(respath + '/frames.pkl', 'wb') as f:
-        pickle.dump(frames, f)
-    with open(respath + '/time_wnd_frames.pkl', 'wb') as f:
-        pickle.dump(time_wnd_frames, f)
-    with open(respath + '/numframes.pkl', 'wb') as f:
-        pickle.dump(numframes, f)
-
-    ########### ANALYSIS RESULTS ###########
-
-    # Convert the resulting frames into videos for each type of map
-    create_video_from_frames(respath + '/egomaps', respath + '/' + title + '.mp4', fps=FPSvideo)
-    create_video_from_frames(respath + '/meanmaps', respath + '/' + title + 'mean.mp4', fps=FPSvideo)
-    create_video_from_frames(respath + '/varmaps', respath + '/' + title + 'var.mp4', fps=FPSvideo)
-    create_video_from_frames(respath + '/sdmaps', respath + '/' + title + 'sd.mp4', fps=FPSvideo)
-    create_video_from_frames(respath + '/incmotionmaps', respath + '/' + title + 'incmotion.mp4', fps=FPSvideo)
+    # Save the results as videos
+    create_video_from_frames(respath+'egomaps/',  respath+'egomaps.mp4', fps=FPSvideo)
 
     print('end')
