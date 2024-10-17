@@ -38,6 +38,16 @@ def difference_of_gaussian(size, sigma1, sigma2):
     # dog = dog * 2 - 1
     return dog
 
+def gaussian_kernel(size, sigma):
+    # Create a grid of (x, y) coordinates using PyTorch
+    x = torch.linspace(-size // 2, size // 2, size)
+    y = torch.linspace(-size // 2, size // 2, size)
+    x, y = torch.meshgrid(x, y)
+
+    # Create a Gaussian kernel
+    kernel = torch.exp(-(x**2 + y**2) / (2 * sigma**2))
+    return kernel
+
 def plot_kernel(dog_kernel,size):
     #plot kernel 3D
     fig = plt.figure()
@@ -211,6 +221,9 @@ def create_results_folders(respath):
     # Create results folders
     createfld('', respath)
     createfld(respath, '/egomaps')
+    createfld(respath, '/compmaps')
+
+
 
 # def run(filter, frames, max_x, max_y,time_wnd_frames):
 #     # Define motion parameters
@@ -293,23 +306,20 @@ def create_results_folders(respath):
 #     return egomaps
 
 
-def run(filter, frames, max_x, max_y,time_wnd_frames):
+def run(filter_dog, filter_gaus, frames, max_x, max_y,time_wnd_frames):
 
     # Define motion parameters
     tau_mem = time_wnd_frames* 10**-3 #tau_mem in milliseconds
 
     #Initialize the network with the loaded filter
-    net = net_def(filter, tau_mem)
+    net_dog = net_def(filter_dog, tau_mem)
+    net_gaus = net_def(filter_gaus, tau_mem)
 
     # Initialize the pyramid resolution
     res = pyr_res(num_pyr, frames)  # Get pyramid resolution
 
     cnt=0
     device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
-    meanegomaps = []
-    minegomaps = []
-    maxegomaps = []
-    threshold = 4
     for frame in frames:
         print(str(cnt) + " frame out of " + str(frames.shape[0]))
         # Create resized versions of the frames
@@ -319,42 +329,44 @@ def run(filter, frames, max_x, max_y,time_wnd_frames):
         batch_frames = torch.stack(
             [torchvision.transforms.Resize((max_y, max_x))(frame) for frame in resized_frames]).type(torch.float32)
         batch_frames = batch_frames.to(device)  # Move to GPU if available
-        output = net(batch_frames)
+        output = net_dog(batch_frames)
+        mean_output = net_gaus(batch_frames)
         # Sum the outputs over rotations and scales
         egomap = torch.sum(output, dim=0, keepdim=True).squeeze().type(torch.float32)
+        meanmap = torch.sum(mean_output, dim=0, keepdim=True).squeeze().type(torch.float32)
         # subtract to the egomap the mean activity of egomap
-        meanegomaps.append(torch.mean(egomap[egomap > threshold]))
-        minegomaps.append(torch.min(egomap))
-        maxegomaps.append(torch.max(egomap))
         # Subtract the mean activity of the network
-        egomap = egomap + (torch.mean(egomap[egomap > threshold])*4)
+        egomapsub = egomap - meanmap
         # # Normalise the egomap between 0 and 1
         egomap = (egomap - egomap.min()) / (egomap.max() - egomap.min())
+        meanmap = (meanmap - meanmap.min()) / (meanmap.max() - meanmap.min())
+        egomapsub = (egomapsub - egomapsub.min()) / (egomapsub.max() - egomapsub.min())
         # Show the egomap
         if show_egomap:
             # plot the frame and overlap the max point of the saliency map with a red dot
             plt.clf()
             # plot egomap
+            plt.subplot(1, 3, 1)
             plt.imshow(egomap.cpu().detach().numpy(), cmap='jet')
-            plt.colorbar()
+            plt.title('Egomap')
+
+            plt.subplot(1, 3, 2)
+            plt.imshow(meanmap.cpu().detach().numpy(), cmap='jet')
+            plt.title('Mean Map')
+
+            plt.subplot(1, 3, 3)
+            plt.imshow(egomapsub.cpu().detach().numpy(), cmap='jet')
+            plt.title('Subtraction Map')
+
             # plot the mean activity of the network
             plt.draw()
             plt.pause(0.001)
         if save_res:
+            # save the plot in a video
+            plt.savefig(respath + 'compmaps/compmaps' + str(cnt) + '.png')
             # save egomap as image
             plt.imsave(respath + 'egomaps/egomap' + str(cnt) + '.png', egomap.cpu().detach(), cmap='jet')
         cnt+=1
-    # plot the meanegomaps over the number of frames
-    plt.figure()
-    plt.plot(torch.tensor(meanegomaps).cpu().detach().numpy(), 'r-', markersize=3, linewidth=0.5)
-    plt.plot(torch.tensor(minegomaps).cpu().detach().numpy(), 'b-', markersize=3, linewidth=0.5)
-    plt.plot(torch.tensor(maxegomaps).cpu().detach().numpy(), 'g-', markersize=3, linewidth=0.5)
-    # labels and legend
-    plt.xlabel('frames')
-    plt.ylabel('mean activity')
-    plt.legend(['mean', 'min', 'max'])
-    # save the plot
-    plt.show()
 
 
 
