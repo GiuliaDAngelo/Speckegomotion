@@ -32,10 +32,21 @@ def difference_of_gaussian(size, sigma1, sigma2):
 
     # Calculate Difference of Gaussian (DoG)
     dog = gaussian1 - gaussian2
-
-    # Normalize the DoG values between 0 and 1
-    # dog_normalized = (dog - dog.min()) / (dog.max() - dog.min())
+    # normalise the kernel between -1 and 1
+    # dog = (dog - dog.min()) / (dog.max() - dog.min())
+    # dog = dog / torch.max(dog)
+    # dog = dog * 2 - 1
     return dog
+
+def plot_kernel(dog_kernel,size):
+    #plot kernel 3D
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    x = torch.linspace(-size // 2, size // 2, size)
+    y = torch.linspace(-size // 2, size // 2, size)
+    x, y = torch.meshgrid(x, y)
+    ax.plot_surface(x.numpy(), y.numpy(), dog_kernel.numpy(), cmap='jet')
+    plt.show()
 
 def h5load_data(filename):
     with h5py.File(filename, "r") as f:
@@ -60,6 +71,8 @@ def h5load_data(filename):
         ds_arr = f[a_group_key][()]  # returns as a numpy array
         print(ds_arr)
     return data, ds_arr
+
+
 class WinnerTakesAll(nn.Module):
     def __init__(self, k=1):
         super(WinnerTakesAll, self).__init__()
@@ -85,7 +98,7 @@ def net_def(filters, tau_mem):
     net = nn.Sequential(
         nn.Conv2d(1, filters.shape[0], filters.shape[1], bias=False),
         sl.LIF(tau_mem),
-        WinnerTakesAll(k=1)  # Add the WTA layer here
+        # WinnerTakesAll(k=1)  # Add the WTA layer here
         # sl.IAF()
     )
     net[0].weight.data = filters.unsqueeze(1).to(device)
@@ -97,7 +110,7 @@ def net_def(filters, tau_mem):
 def npy_data(filePathOrName, tsFLAG):
     recording = np.load(filePathOrName)
     if tsFLAG:
-        recording[:, 3] *= 1e6  # convert time from seconds to microseconds
+        recording[:, 3] *= 1e3  # convert time from seconds to milliseconds
     rec = rf.unstructured_to_structured(recording,
                                         dtype=np.dtype(
                                             [('x', np.int16), ('y', np.int16), ('p', bool), ('t', int)]))
@@ -114,6 +127,8 @@ def load_krn(path):
 def load_eventsnpy(polarity, dur_video, FPS, filePathOrName,tsFLAG):
     rec = npy_data(filePathOrName,tsFLAG)
     # find out maximum x and y
+
+    ### values here are in milliseonds the max ts should be the duration of the video 4 sec
     max_x = rec['x'].max().astype(int)
     max_y = rec['y'].max().astype(int)
     max_ts = rec['t'].max()
@@ -281,9 +296,6 @@ def create_results_folders(respath):
 def run(filter, frames, max_x, max_y,time_wnd_frames):
 
     # Define motion parameters
-    deltaT = time_wnd_frames #microseconds
-    tau = time_wnd_frames * 4
-    alpha = np.exp(-deltaT / tau)
     tau_mem = time_wnd_frames* 10**-3 #tau_mem in milliseconds
 
     #Initialize the network with the loaded filter
@@ -294,8 +306,12 @@ def run(filter, frames, max_x, max_y,time_wnd_frames):
 
     cnt=0
     device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+    meanegomaps = []
+    minegomaps = []
+    maxegomaps = []
+    threshold = 4
     for frame in frames:
-        print(str(cnt) + "frame out of " + str(frames.shape[0]))
+        print(str(cnt) + " frame out of " + str(frames.shape[0]))
         # Create resized versions of the frames
         resized_frames = [torchvision.transforms.Resize((int(frame.shape[1] / pyr), int(frame.shape[2] / pyr)))(frame)
                           for pyr in range(1, num_pyr + 1)]
@@ -306,17 +322,41 @@ def run(filter, frames, max_x, max_y,time_wnd_frames):
         output = net(batch_frames)
         # Sum the outputs over rotations and scales
         egomap = torch.sum(output, dim=0, keepdim=True).squeeze().type(torch.float32)
+        # subtract to the egomap the mean activity of egomap
+        meanegomaps.append(torch.mean(egomap[egomap > threshold]))
+        minegomaps.append(torch.min(egomap))
+        maxegomaps.append(torch.max(egomap))
+        # Subtract the mean activity of the network
+        egomap = egomap + (torch.mean(egomap[egomap > threshold])*4)
+        # # Normalise the egomap between 0 and 1
+        egomap = (egomap - egomap.min()) / (egomap.max() - egomap.min())
+        # Show the egomap
         if show_egomap:
             # plot the frame and overlap the max point of the saliency map with a red dot
             plt.clf()
             # plot egomap
             plt.imshow(egomap.cpu().detach().numpy(), cmap='jet')
+            plt.colorbar()
+            # plot the mean activity of the network
             plt.draw()
-            plt.pause(0.0001)
+            plt.pause(0.001)
         if save_res:
             # save egomap as image
             plt.imsave(respath + 'egomaps/egomap' + str(cnt) + '.png', egomap.cpu().detach(), cmap='jet')
         cnt+=1
+    # plot the meanegomaps over the number of frames
+    plt.figure()
+    plt.plot(torch.tensor(meanegomaps).cpu().detach().numpy(), 'r-', markersize=3, linewidth=0.5)
+    plt.plot(torch.tensor(minegomaps).cpu().detach().numpy(), 'b-', markersize=3, linewidth=0.5)
+    plt.plot(torch.tensor(maxegomaps).cpu().detach().numpy(), 'g-', markersize=3, linewidth=0.5)
+    # labels and legend
+    plt.xlabel('frames')
+    plt.ylabel('mean activity')
+    plt.legend(['mean', 'min', 'max'])
+    # save the plot
+    plt.show()
+
+
 
 
 def load_eventsh5(polarity, time_wnd_frames, ds_arr):
