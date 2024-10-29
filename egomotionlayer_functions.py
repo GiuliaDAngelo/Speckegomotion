@@ -48,14 +48,14 @@ def gaussian_kernel(size, sigma):
     kernel = torch.exp(-(x**2 + y**2) / (2 * sigma**2))
     return kernel
 
-def plot_kernel(dog_kernel,size):
+def plot_kernel(kernel,size):
     #plot kernel 3D
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     x = torch.linspace(-size // 2, size // 2, size)
     y = torch.linspace(-size // 2, size // 2, size)
     x, y = torch.meshgrid(x, y)
-    ax.plot_surface(x.numpy(), y.numpy(), dog_kernel.numpy(), cmap='jet')
+    ax.plot_surface(x.numpy(), y.numpy(), kernel.numpy(), cmap='jet')
     plt.show()
 
 def h5load_data(filename):
@@ -102,16 +102,14 @@ class WinnerTakesAll(nn.Module):
         # Apply the mask to the input
         return x * mask
 
-def net_def(filters, tau_mem):
+def net_def(filter, tau_mem):
     # define our single layer network and load the filters
     device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
     net = nn.Sequential(
-        nn.Conv2d(1, filters.shape[0], filters.shape[1], bias=False),
+        nn.Conv2d(1, 1, (size_krn,size_krn), stride=1, bias=False),
         sl.LIF(tau_mem),
-        # WinnerTakesAll(k=1)  # Add the WTA layer here
-        # sl.IAF()
     )
-    net[0].weight.data = filters.unsqueeze(1).to(device)
+    net[0].weight.data = filter.unsqueeze(1).to(device)
     net[1].v_mem = net[1].tau_mem * net[1].v_mem.to(device)
     return net
 
@@ -218,154 +216,59 @@ def create_video_from_frames(frame_folder, output_video, fps=30):
     cv2.destroyAllWindows()
 
 def create_results_folders(respath):
-    # Create results folders
+    #check if teh folders exist already
     createfld('', respath)
     createfld(respath, '/egomaps')
-    createfld(respath, '/compmaps')
 
-
-
-# def run(filter, frames, max_x, max_y,time_wnd_frames):
-#     # Define motion parameters
-#     deltaT = time_wnd_frames #microseconds
-#     tau = time_wnd_frames * 4
-#     alpha = np.exp(-deltaT / tau)
-#     tau_mem = time_wnd_frames* 10**-3 #tau_mem in milliseconds
-#     # Step 2: Initialize the network with the loaded filter
-#     net = net_def(filter, tau_mem)
-#
-#     # Initialize the pyramid resolution
-#     res = pyr_res(num_pyr, frames)  # Get pyramid resolution
-#     egomaps = torch.empty((frames.shape[0], 1, max_y, max_x), dtype=torch.int64)
-#     # Get the total number of frames
-#     numframes = len(frames)
-#     # Skip the first frame
-#     frames = frames[1:numframes, :, :, :]
-#
-#
-#     cnt=0
-#     egomap = torch.empty((1, num_pyr, max_y, max_x), dtype=torch.float32)
-#     save_egomap = torch.empty((1, num_pyr, max_y, max_x), dtype=torch.float32)
-#     incmotionmap = torch.empty((1, num_pyr, max_y, max_x), dtype=torch.float32)
-#
-#     meanrunstats = torch.zeros((max_y, max_x))
-#     varrunstats = torch.zeros((max_y, max_x))
-#     sdrunstats = torch.zeros((max_y, max_x))
-#
-#     for frame in frames:
-#         print(str(cnt) + "frame out of " + str(frames.shape[0]))
-#         #scales pyramid
-#         for pyr in range(1, num_pyr+1):
-#             Hin = res[pyr-1][0]
-#             Win = res[pyr-1][1]
-#             Hw = int(Hin - filter.size()[1] + 1)
-#             Ww = int(Win - filter.size()[2] + 1)
-#             # print(f"pyramid scale {pyr}")
-#             #get resolution and resize input for the pyramid
-#             frm_rsz = torchvision.transforms.Resize((res[pyr-1][0], res[pyr-1][1]))(frame)
-#             with torch.no_grad():
-#                 output = net(frm_rsz.float())
-#             # print(output.shape)
-#             #normalising over the neurons on the layer
-#             egomap[0, (pyr - 1)] = torchvision.transforms.Resize((max_y, max_x))(output) / (Hw * Ww)
-#
-#         # sum egomaps from the pyramid + running stats for running mean
-#         egomap = torch.sum(egomap, dim=1, keepdim=True)
-#         # show the egomap plt.draw()
-#         #put flag to show the egomap
-#         if show_egomap:
-#             plt.imshow(egomap[0][0].cpu().detach().numpy(), cmap='jet')
-#             plt.draw()
-#             plt.pause(0.0001)
-#
-#         #running mean activity of the network
-#         [meanrunstats, varrunstats,sdrunstats] = running_stats(egomap[0][0], meanrunstats, varrunstats,alpha)
-#
-#         # egomap - running mean activity in time
-#         incmotionmap = egomap[0][0] - meanrunstats
-#         if show_netactivity:
-#             plt.imshow(incmotionmap.cpu().detach().numpy(), cmap='jet')
-#             plt.draw()
-#             plt.pause(0.0001)
-#         #save results, normalise only for visualisation
-#         egomaps[cnt] = egomap
-#         save_egomap = (egomap - egomap.min()) / (egomap.max() - egomap.min())
-#         incmotionmap  = (incmotionmap - incmotionmap.min()) / (incmotionmap.max() - incmotionmap.min())
-#
-#         #save egomap and meanmaps+varmaps+sdmaps
-#         vutils.save_image(save_egomap.squeeze(0), respath+'/egomaps/egomap'+str(cnt)+'.png')
-#         vutils.save_image(incmotionmap.squeeze(0), respath + '/incmotionmaps/incmotionmap' + str(cnt) + '.png')
-#         plt.imsave(respath + '/meanmaps/meanmap'+str(cnt)+'.png', meanrunstats, cmap='jet')
-#         plt.imsave(respath + '/varmaps/varmap'+str(cnt)+'.png', varrunstats, cmap='jet')
-#         plt.imsave(respath + '/sdmaps/sdmap'+str(cnt)+'.png', sdrunstats, cmap='jet')
-#
-#         #empty egomaps
-#         egomap = torch.empty((1, num_pyr, max_y, max_x), dtype=torch.float32)
-#         save_egomap = torch.empty((1, num_pyr, max_y, max_x), dtype=torch.float32)
-#         cnt+=1
-#     return egomaps
-
-
-def run(filter_dog, filter_gaus, frames, max_x, max_y,time_wnd_frames):
+def run(filter, frames, max_x, max_y,time_wnd_frames):
 
     # Define motion parameters
     tau_mem = time_wnd_frames* 10**-3 #tau_mem in milliseconds
 
     #Initialize the network with the loaded filter
-    net_dog = net_def(filter_dog, tau_mem)
-    net_gaus = net_def(filter_gaus, tau_mem)
-
-    # Initialize the pyramid resolution
-    res = pyr_res(num_pyr, frames)  # Get pyramid resolution
+    net = net_def(filter, tau_mem)
 
     cnt=0
     device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
     for frame in frames:
         print(str(cnt) + " frame out of " + str(frames.shape[0]))
-        # Create resized versions of the frames
-        resized_frames = [torchvision.transforms.Resize((int(frame.shape[1] / pyr), int(frame.shape[2] / pyr)))(frame)
-                          for pyr in range(1, num_pyr + 1)]
-        # Process frames in batches
-        batch_frames = torch.stack(
-            [torchvision.transforms.Resize((max_y, max_x))(frame) for frame in resized_frames]).type(torch.float32)
-        batch_frames = batch_frames.to(device)  # Move to GPU if available
-        output = net_dog(batch_frames)
-        mean_output = net_gaus(batch_frames)
-        # Sum the outputs over rotations and scales
-        egomap = torch.sum(output, dim=0, keepdim=True).squeeze().type(torch.float32)
-        meanmap = torch.sum(mean_output, dim=0, keepdim=True).squeeze().type(torch.float32)
-        # subtract to the egomap the mean activity of egomap
-        # Subtract the mean activity of the network
-        egomapsub = egomap - meanmap
-        # # Normalise the egomap between 0 and 1
+        frame = frame.to(device, dtype=net[0].weight.dtype)  # Move to GPU if available and match dtype
+        egomap = net(frame)
+        #resize egomap to the original size
+        egomap = torch.nn.functional.interpolate(egomap.unsqueeze(0), size=(max_y+1, max_x+1), mode='bilinear', align_corners=False).squeeze(0)
+
         egomap = (egomap - egomap.min()) / (egomap.max() - egomap.min())
-        meanmap = (meanmap - meanmap.min()) / (meanmap.max() - meanmap.min())
-        egomapsub = (egomapsub - egomapsub.min()) / (egomapsub.max() - egomapsub.min())
+        frame = (frame - frame.min()) / (frame.max() - frame.min())
+
+        suppression = frame - egomap
+        suppression = (suppression - suppression.min()) / (suppression.max() - suppression.min())
+
+
         # Show the egomap
         if show_egomap:
             # plot the frame and overlap the max point of the saliency map with a red dot
             plt.clf()
-            # plot egomap
+            #subplot ahowing the frame and the egomap
             plt.subplot(1, 3, 1)
-            plt.imshow(egomap.cpu().detach().numpy(), cmap='jet')
-            plt.title('Egomap')
+            plt.imshow(frame.squeeze(0).cpu().detach().numpy(), cmap='gray')
+            plt.colorbar(shrink=0.3)
+            plt.title('Frame')
 
             plt.subplot(1, 3, 2)
-            plt.imshow(meanmap.cpu().detach().numpy(), cmap='jet')
-            plt.title('Mean Map')
+            plt.imshow(egomap.squeeze(0).cpu().detach().numpy(), cmap='jet')
+            plt.colorbar(shrink=0.3)
+            plt.title('Egomap Map')
 
             plt.subplot(1, 3, 3)
-            plt.imshow(egomapsub.cpu().detach().numpy(), cmap='jet')
-            plt.title('Subtraction Map')
+            plt.imshow(suppression.squeeze(0).cpu().detach().numpy(), cmap='jet')
+            plt.colorbar(shrink=0.3)
+            plt.title('Suppression Map')
 
-            # plot the mean activity of the network
             plt.draw()
             plt.pause(0.001)
         if save_res:
             # save the plot in a video
-            plt.savefig(respath + 'compmaps/compmaps' + str(cnt) + '.png')
-            # save egomap as image
-            plt.imsave(respath + 'egomaps/egomap' + str(cnt) + '.png', egomap.cpu().detach(), cmap='jet')
+            plt.savefig(respath + 'egomaps/egomap' + str(cnt) + '.png')
         cnt+=1
 
 
@@ -402,3 +305,4 @@ def createfld(respath, namefld):
         print('Folder created')
     else:
         print('Folder already exists')
+
