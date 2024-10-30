@@ -228,7 +228,6 @@ def run(filter, frames, max_x, max_y,time_wnd_frames):
 
     # Define motion parameters
     tau_mem = time_wnd_frames* 10**-3 #tau_mem in milliseconds
-
     #Initialize the network with the loaded filter
     net = net_def(filter, tau_mem, num_pyr)
     cnt=0
@@ -236,19 +235,8 @@ def run(filter, frames, max_x, max_y,time_wnd_frames):
     res = pyr_res(num_pyr, frames)
     for frame in frames:
         print(str(cnt) + " frame out of " + str(frames.shape[0]))
-        if pyrFLAG:
-            resized_frames = [torchvision.transforms.Resize((int(frame.shape[1] / pyr), int(frame.shape[2] / pyr)))(frame)
-                              for pyr in range(1, num_pyr + 1)]
-            batch_frames = torch.stack(
-                [torchvision.transforms.Resize((max_y, max_x))(frame) for frame in resized_frames]).type(torch.float32)
-            batch_frames = batch_frames.to(device)  # Move to GPU if available
-            egomap = net(batch_frames)
-            #sum up the egomaps 0 dimension
-            egomap = torch.sum(egomap, dim=0)
-        else:
-            # Move to GPU if available and match dtype
-            frame = frame.to(device, dtype=net[0].weight.dtype)
-            egomap = net(frame)
+        frame = frame.to(device, dtype=net[0].weight.dtype)
+        egomap = net(frame)
         #resize egomap to the original size
         egomap = torch.nn.functional.interpolate(egomap.unsqueeze(0), size=(max_y+1, max_x+1), mode='bilinear', align_corners=False).squeeze(0)
         #frame, egomap between 0 and 255

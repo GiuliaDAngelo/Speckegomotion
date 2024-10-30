@@ -1,7 +1,7 @@
 
 
-# respath = 'results/objego/'
-respath = 'results/ego/'
+respath = 'results/objego/'
+# respath = 'results/ego/'
 # respath = 'results/onlyobj/'
 
 respath_to_file = {
@@ -29,11 +29,7 @@ tsFLAG = False  # Flag to convert timestamps to microseconds
 stimspeed = 60.0  # Speed of stimulus in pixels per second/ 1000 ms
 show_egomap = True
 save_res = True
-pyrFLAG = True
-if pyrFLAG:
-    num_pyr = 6  # number of pyramid levels
-else:
-    num_pyr = 1
+num_pyr = 1
 title = respath.split('/')[1]
 threshold = 180
 
