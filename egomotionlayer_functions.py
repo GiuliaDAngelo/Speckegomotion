@@ -46,6 +46,10 @@ def gaussian_kernel(size, sigma):
 
     # Create a Gaussian kernel
     kernel = torch.exp(-(x**2 + y**2) / (2 * sigma**2))
+    #kernel values between - 1 and 1
+    kernel = (kernel - kernel.min()) / (kernel.max() - kernel.min())
+    # kernel = kernel / torch.max(kernel)
+    # kernel = kernel * 2 - 1
     return kernel
 
 def plot_kernel(kernel,size):
@@ -102,11 +106,11 @@ class WinnerTakesAll(nn.Module):
         # Apply the mask to the input
         return x * mask
 
-def net_def(filter, tau_mem):
+def net_def(filter, tau_mem, num_pyr):
     # define our single layer network and load the filters
     device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
     net = nn.Sequential(
-        nn.Conv2d(1, 1, (size_krn,size_krn), stride=1, bias=False),
+        nn.Conv2d(1, num_pyr, (size_krn,size_krn), stride=1, bias=False),
         sl.LIF(tau_mem),
     )
     net[0].weight.data = filter.unsqueeze(1).to(device)
@@ -226,23 +230,36 @@ def run(filter, frames, max_x, max_y,time_wnd_frames):
     tau_mem = time_wnd_frames* 10**-3 #tau_mem in milliseconds
 
     #Initialize the network with the loaded filter
-    net = net_def(filter, tau_mem)
-
+    net = net_def(filter, tau_mem, num_pyr)
     cnt=0
     device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+    res = pyr_res(num_pyr, frames)
     for frame in frames:
         print(str(cnt) + " frame out of " + str(frames.shape[0]))
-        frame = frame.to(device, dtype=net[0].weight.dtype)  # Move to GPU if available and match dtype
-        egomap = net(frame)
+        if pyrFLAG:
+            resized_frames = [torchvision.transforms.Resize((int(frame.shape[1] / pyr), int(frame.shape[2] / pyr)))(frame)
+                              for pyr in range(1, num_pyr + 1)]
+            batch_frames = torch.stack(
+                [torchvision.transforms.Resize((max_y, max_x))(frame) for frame in resized_frames]).type(torch.float32)
+            batch_frames = batch_frames.to(device)  # Move to GPU if available
+            egomap = net(batch_frames)
+            #sum up the egomaps 0 dimension
+            egomap = torch.sum(egomap, dim=0)
+        else:
+            # Move to GPU if available and match dtype
+            frame = frame.to(device, dtype=net[0].weight.dtype)
+            egomap = net(frame)
         #resize egomap to the original size
         egomap = torch.nn.functional.interpolate(egomap.unsqueeze(0), size=(max_y+1, max_x+1), mode='bilinear', align_corners=False).squeeze(0)
-
-        egomap = (egomap - egomap.min()) / (egomap.max() - egomap.min())
-        frame = (frame - frame.min()) / (frame.max() - frame.min())
-
-        suppression = frame - egomap
-        suppression = (suppression - suppression.min()) / (suppression.max() - suppression.min())
-
+        #frame, egomap between 0 and 255
+        frame = (frame - frame.min()) / (frame.max() - frame.min()) * 255
+        egomap = (egomap - egomap.min()) / (egomap.max() - egomap.min()) * 255
+        #values under a threashold are set to 0
+        egomap[egomap < threshold] = 0
+        # create suppression map
+        suppression = torch.zeros((1, max_y + 1, max_x + 1), device=device)
+        #where egomap is over the threashold suppression max = frame
+        suppression[egomap >= threshold] = frame[egomap >= threshold]
 
         # Show the egomap
         if show_egomap:
@@ -259,8 +276,9 @@ def run(filter, frames, max_x, max_y,time_wnd_frames):
             plt.colorbar(shrink=0.3)
             plt.title('Egomap Map')
 
+            #plot suppression map
             plt.subplot(1, 3, 3)
-            plt.imshow(suppression.squeeze(0).cpu().detach().numpy(), cmap='jet')
+            plt.imshow(suppression.squeeze(0).cpu().detach().numpy(), cmap='gray')
             plt.colorbar(shrink=0.3)
             plt.title('Suppression Map')
 

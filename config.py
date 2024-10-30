@@ -1,8 +1,8 @@
 
 
 # respath = 'results/objego/'
-# respath = 'results/ego/'
-respath = 'results/onlyobj/'
+respath = 'results/ego/'
+# respath = 'results/onlyobj/'
 
 respath_to_file = {
     'results/ego/': "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/ego/ego1/ego1.npy",
@@ -18,7 +18,7 @@ filePathOrName = respath_to_file.get(respath, None)
 
 # Parameters kernel
 size_krn = 8  # Size of the kernel (NxN)
-sigma = size_krn/2  # Sigma for the first Gaussian
+sigma = 4  # Sigma for the first Gaussian
 
 # Parameters events
 polarity = True
@@ -29,8 +29,13 @@ tsFLAG = False  # Flag to convert timestamps to microseconds
 stimspeed = 60.0  # Speed of stimulus in pixels per second/ 1000 ms
 show_egomap = True
 save_res = True
-num_pyr = 5  # number of pyramid levels
+pyrFLAG = True
+if pyrFLAG:
+    num_pyr = 6  # number of pyramid levels
+else:
+    num_pyr = 1
 title = respath.split('/')[1]
+threshold = 180
 
 
 

@@ -39,5 +39,4 @@ if __name__ == '__main__':
     if save_res:
         create_video_from_frames(respath+'egomaps/',  respath+respath.split('/')[1]+'egomap.mp4', fps=FPSvideo)
 
-
     print('end')
