@@ -3,7 +3,7 @@
 from egomotionlayer_functions import *
 import torchvision.utils as vutils
 import matplotlib.pyplot as plt
-from config import *
+from configmain import *
 import pickle
 import numpy as np
 import h5py
@@ -311,4 +311,3 @@ def createfld(respath, namefld):
         print('Folder created')
     else:
         print('Folder already exists')
-
