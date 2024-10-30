@@ -232,7 +232,6 @@ def run(filter, frames, max_x, max_y,time_wnd_frames):
     net = net_def(filter, tau_mem, num_pyr)
     cnt=0
     device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
-    res = pyr_res(num_pyr, frames)
     for frame in frames:
         print(str(cnt) + " frame out of " + str(frames.shape[0]))
         frame = frame.to(device, dtype=net[0].weight.dtype)
