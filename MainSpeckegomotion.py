@@ -5,6 +5,8 @@ from controller.helper import run_controller
 
 if __name__ == "__main__":
 
+    ##### egomotion
+
     # create kernel Gaussian distribution
     gauss_kernel_center = gaussian_kernel(size_krn_center, sigma_center)
     gauss_kernel_surround = gaussian_kernel(size_krn_surround, sigma_surround)
@@ -21,6 +23,19 @@ if __name__ == "__main__":
     # net_surround = net_def(filter_surround, tau_mem, num_pyr, size_krn_surround)
     net = net_def(filter,tau_mem, num_pyr, filter.size(1))
     device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+
+
+    ##### attention
+
+    # 'thetas' defines the orientation angles, 'size' defines the filter size, and other parameters shape the filters
+    filters_attention = create_vm_filters(thetas, size, rho, r0, thick, offset)
+
+    # Toggle to display the created filters for visualization (currently set to False)
+    plot_filters(filters_attention, thetas)
+
+    # Initialize the attention network with the loaded filters
+    netattention = network_init(filters_attention)
+
 
     # Set the Speck and sink events
     sink, window, numevs, events_lock = Specksetup()
@@ -40,6 +55,7 @@ if __name__ == "__main__":
                     egomap, indexes = egomotion(window, net, numevs, device)
                     # cv2.imshow('DVS Events', window)
                     egomap = np.array(egomap.detach().cpu().numpy(), dtype=np.uint8)
+                    salmap = run_attention(egomap, netattention)
                     cv2.imshow('Egomotion', egomap[0])
                     cv2.waitKey(1)
                     window.fill(0)
