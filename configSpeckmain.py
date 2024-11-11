@@ -11,8 +11,11 @@ last_update_time = time.time()
 
 
 # Parameters kernel
-size_krn = 8  # Size of the kernel (NxN)
-sigma = 4  # Sigma for the first Gaussian
+size_krn_center = 8  # Size of the kernel (NxN)
+sigma_center = 1  # Sigma for the first Gaussian
+size_krn_surround = 8  # Size of the kernel (NxN)
+sigma_surround = 4  # Sigma for the first Gaussian
+
 num_pyr = 1
-tau_mem = 0.03
-threshold = 180
+tau_mem = 0.01
+threshold = 200

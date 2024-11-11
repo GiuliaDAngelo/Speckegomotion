@@ -18,7 +18,7 @@ filePathOrName = respath_to_file.get(respath, None)
 
 # Parameters kernel
 size_krn = 8  # Size of the kernel (NxN)
-sigma = 4  # Sigma for the first Gaussian
+sigma = 5  # Sigma for the first Gaussian
 
 # Parameters events
 polarity = True
@@ -31,7 +31,7 @@ show_egomap = True
 save_res = True
 num_pyr = 1
 title = respath.split('/')[1]
-threshold = 180
+threshold = 0
 
 
 

@@ -16,6 +16,18 @@ from configSpeckmain import *
 import torch
 import torch.nn as nn
 import sinabs.layers as sl
+import matplotlib.pyplot as plt
+
+def plot_kernel(kernel,size):
+    #plot kernel 3D
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    x = torch.linspace(-size // 2, size // 2, size)
+    y = torch.linspace(-size // 2, size // 2, size)
+    x, y = torch.meshgrid(x, y)
+    ax.plot_surface(x.numpy(), y.numpy(), kernel.numpy(), cmap='jet')
+    plt.show()
+
 
 def fetch_events(sink, window, drop_rate, events_lock, numevs):
     while True:
@@ -51,7 +63,7 @@ def Specksetup():
     events_lock = threading.Lock()
     return sink, window, numevs, events_lock
 
-def net_def(filter, tau_mem, num_pyr):
+def net_def(filter, tau_mem, num_pyr, size_krn):
     # define our single layer network and load the filters
     device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
     net = nn.Sequential(
@@ -78,16 +90,32 @@ def gaussian_kernel(size, sigma):
 
 def egomotion(window, net, numevs, device):
     window = torch.from_numpy(window).unsqueeze(0).float().to(device)
+
     egomap = net(window)
+    # center_map = net_center(window)
+    # surround_map = net_surround(window)
+
     # resize egomap to the original size
-    egomap = torch.nn.functional.interpolate(egomap.unsqueeze(0), size=(max_y, max_x), mode='bilinear', align_corners=False).squeeze(0)
+    # center_map = torch.nn.functional.interpolate(center_map.unsqueeze(0), size=(max_y, max_x), mode='bilinear', align_corners=False).squeeze(0)
+    # surround_map = torch.nn.functional.interpolate(surround_map.unsqueeze(0), size=(max_y, max_x), mode='bilinear',
+    #                                 align_corners=False).squeeze(0)
+
+    egomap = torch.nn.functional.interpolate(egomap.unsqueeze(0), size=(max_y, max_x), mode='bilinear',
+                                                   align_corners=False).squeeze(0)
+
     # frame, egomap between 0 and 255
     frame = (window - window.min()) / (window.max() - window.min()) * 255
+    # center_map = (center_map - center_map.min()) / (center_map.max() - center_map.min()) * 255
+    # surround_map = (surround_map - surround_map.min()) / (surround_map.max() - surround_map.min()) * 255
     egomap = (egomap - egomap.min()) / (egomap.max() - egomap.min()) * 255
+    # suppression = center_map - surround_map
+
     # values under a threashold are set to 0
-    egomap[egomap < threshold] = 0
+    # center_map[center_map < threshold] = 0
     # create suppression map
     suppression = torch.zeros((1, max_y, max_x), device=device)
     # where egomap is over the threashold suppression max = frame
-    suppression[egomap >= threshold] = frame[egomap >= threshold]
-    return suppression
+    indexes = egomap >= threshold
+    suppression[indexes] = frame[indexes]
+    # how many indexes are true
+    return suppression, indexes
