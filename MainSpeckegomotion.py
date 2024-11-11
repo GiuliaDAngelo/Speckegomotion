@@ -1,5 +1,6 @@
 from Speckegolayer_functions import *
 from configSpeckmain import *
+from controller.helper import run_controller
 
 
 if __name__ == "__main__":
@@ -42,6 +43,12 @@ if __name__ == "__main__":
                     cv2.imshow('Egomotion', egomap[0])
                     cv2.waitKey(1)
                     window.fill(0)
+                    max_x, max_y = 20, 30 # sensor is 128 x 128 in size, these 
+                    # are the location of maximum attention value
+                    cmd = run_controller(
+                            np.array([max_x, max_y]), 
+                            np.array([target_x, target_y])
+                        )
                     if showstats:
                         #print number of events
                         print('Number of events: ' + str(numevs[0]))
