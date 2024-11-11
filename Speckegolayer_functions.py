@@ -6,6 +6,7 @@ This script visualize the events from the DVS sensor.
 
 
 import numpy as np
+from scipy.special import iv
 import cv2
 import sinabs.backend.dynapcnn.io as sio
 import samna
@@ -25,8 +26,8 @@ import torchvision
 def run_attention(evframe, net):
     device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
     # Create resized versions of the frames
-    resized_frames = [torchvision.transforms.Resize((int(evframe.shape[2] / pyr), int(evframe.shape[1] / pyr)))(evframe)
-                      for pyr in range(1, num_pyr + 1)]
+    resized_frames = [torchvision.transforms.Resize((int(evframe.shape[2] / pyr), int(evframe.shape[1] / pyr)))(
+        torch.from_numpy(evframe)) for pyr in range(1, num_pyr + 1)]
     # Process frames in batches
     batch_frames = torch.stack(
         [torchvision.transforms.Resize((resolution[0], resolution[1]))(frame) for frame in resized_frames]).type(torch.float32)

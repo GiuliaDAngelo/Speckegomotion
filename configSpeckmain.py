@@ -31,7 +31,7 @@ thick = 3  # thickness of the arc
 offsetpxs = size / 2
 offset = (offsetpxs, offsetpxs)
 fltr_resize_perc = [2, 2]
-num_pyr = 1
+num_pyr = 3
 
 # Create Von Mises (VM) filters with specified parameters
 # The angles are generated in radians, ranging from 0 to 2π in steps of π/4

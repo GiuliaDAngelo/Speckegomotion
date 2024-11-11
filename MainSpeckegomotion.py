@@ -31,7 +31,7 @@ if __name__ == "__main__":
     filters_attention = create_vm_filters(thetas, size, rho, r0, thick, offset)
 
     # Toggle to display the created filters for visualization (currently set to False)
-    plot_filters(filters_attention, thetas)
+    # plot_filters(filters_attention, thetas)
 
     # Initialize the attention network with the loaded filters
     netattention = network_init(filters_attention)
@@ -55,15 +55,14 @@ if __name__ == "__main__":
                     egomap, indexes = egomotion(window, net, numevs, device)
                     # cv2.imshow('DVS Events', window)
                     egomap = np.array(egomap.detach().cpu().numpy(), dtype=np.uint8)
-                    salmap = run_attention(egomap, netattention)
+                    salmap, salmap_coords = run_attention(egomap, netattention)
                     cv2.imshow('Egomotion', egomap[0])
                     cv2.waitKey(1)
                     window.fill(0)
-                    max_x, max_y = 20, 30 # sensor is 128 x 128 in size, these 
-                    # are the location of maximum attention value
+                    # are the location of maximum attention value, values are between -1 and 1
                     cmd = run_controller(
-                            np.array([max_x, max_y]), 
-                            np.array([target_x, target_y])
+                            np.array([salmap_coords[1]/(resolution[1]), salmap_coords[0]/(resolution[1])]),
+                            np.array([0.5, 0.5])
                         )
                     if showstats:
                         #print number of events
