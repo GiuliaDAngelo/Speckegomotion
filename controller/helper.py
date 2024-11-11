@@ -1,4 +1,4 @@
-from nengo_controller import NengoController
+from controller.nengo_controller import NengoController
 
 
 _nengo_controller_obj = None
