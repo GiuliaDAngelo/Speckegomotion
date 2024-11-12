@@ -3,8 +3,7 @@ Giulia D'Angelo, giulia.dangelo@fel.cvut.cz
 
 This script visualize the events from the DVS sensor.
 '''
-
-
+import numpy
 import numpy as np
 from scipy.special import iv
 import cv2
@@ -21,13 +20,29 @@ import matplotlib.pyplot as plt
 from skimage.transform import rescale, resize, downscale_local_mean
 import torchvision
 
+def send_command(ser, command):
+    ser.write(command.encode('utf-8'))
+    time.sleep(0.1)  # Small delay to allow the device to process the command
 
 
-def run_attention(evframe, net):
-    device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+def egokernel():
+    # create kernel Gaussian distribution
+    gauss_kernel_center = gaussian_kernel(size_krn_center, sigma_center)
+    gauss_kernel_surround = gaussian_kernel(size_krn_surround, sigma_surround)
+
+    # plot_kernel(gauss_kernel_center,gauss_kernel_center.size(0))
+    # plot_kernel(gauss_kernel_surround,gauss_kernel_surround.size(0))
+
+    filter = gauss_kernel_surround - gauss_kernel_center
+    # plot_kernel(filter, filter.size(0))
+    filter = filter.unsqueeze(0)
+    return filter
+
+
+def run_attention(window, net, device):
     # Create resized versions of the frames
-    resized_frames = [torchvision.transforms.Resize((int(evframe.shape[2] / pyr), int(evframe.shape[1] / pyr)))(
-        torch.from_numpy(evframe)) for pyr in range(1, num_pyr + 1)]
+    resized_frames = [torchvision.transforms.Resize((int(window.shape[2] / pyr), int(window.shape[1] / pyr)))(
+        torch.from_numpy(window)) for pyr in range(1, num_pyr + 1)]
     # Process frames in batches
     batch_frames = torch.stack(
         [torchvision.transforms.Resize((resolution[0], resolution[1]))(frame) for frame in resized_frames]).type(torch.float32)
@@ -35,8 +50,12 @@ def run_attention(evframe, net):
     output_rot = net(batch_frames)
     # Sum the outputs over rotations and scales
     salmap = torch.sum(torch.sum(output_rot, dim=1, keepdim=True), dim=0, keepdim=True).squeeze().type(torch.float32)
-    max_idx = torch.argmax(salmap)
-    salmax_coords = np.unravel_index(max_idx.cpu().numpy(), salmap.shape)
+    salmax_coords = np.unravel_index(torch.argmax(salmap).cpu().numpy(), salmap.shape)
+    # normalise salmap for visualization
+    salmap = salmap.detach().cpu()
+    salmap = np.array((salmap - salmap.min()) / (salmap.max() - salmap.min()) * 255)
+    # rescale salmap to the original size
+    # salmap = resize(salmap, (window.shape[1], window.shape[2]), anti_aliasing=False)
     return salmap,salmax_coords
 
 def network_init(filters):
@@ -220,30 +239,14 @@ def egomotion(window, net, numevs, device):
     window = torch.from_numpy(window).unsqueeze(0).float().to(device)
 
     egomap = net(window)
-    # center_map = net_center(window)
-    # surround_map = net_surround(window)
-
-    # resize egomap to the original size
-    # center_map = torch.nn.functional.interpolate(center_map.unsqueeze(0), size=(max_y, max_x), mode='bilinear', align_corners=False).squeeze(0)
-    # surround_map = torch.nn.functional.interpolate(surround_map.unsqueeze(0), size=(max_y, max_x), mode='bilinear',
-    #                                 align_corners=False).squeeze(0)
-
     egomap = torch.nn.functional.interpolate(egomap.unsqueeze(0), size=(max_y, max_x), mode='bilinear',
                                                    align_corners=False).squeeze(0)
-
     # frame, egomap between 0 and 255
     frame = (window - window.min()) / (window.max() - window.min()) * 255
-    # center_map = (center_map - center_map.min()) / (center_map.max() - center_map.min()) * 255
-    # surround_map = (surround_map - surround_map.min()) / (surround_map.max() - surround_map.min()) * 255
     egomap = (egomap - egomap.min()) / (egomap.max() - egomap.min()) * 255
-    # suppression = center_map - surround_map
-
-    # values under a threashold are set to 0
-    # center_map[center_map < threshold] = 0
-    # create suppression map
     suppression = torch.zeros((1, max_y, max_x), device=device)
     # where egomap is over the threashold suppression max = frame
     indexes = egomap >= threshold
     suppression[indexes] = frame[indexes]
-    # how many indexes are true
+    suppression=np.array(suppression.detach().cpu().numpy(), dtype=np.uint8)
     return suppression, indexes

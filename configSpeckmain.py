@@ -23,12 +23,12 @@ threshold = 200
 
 
 # Visual attention paramters
-size = 20  # Size of the kernel
-r0 = 8  # Radius shift from the center
+size = 10  # Size of the kernel
+r0 = 4  # Radius shift from the center
 rho = 0.1  # Scale coefficient to control arc length
 theta = np.pi * 3 / 2  # Angle to control the orientation of the arc
 thick = 3  # thickness of the arc
-offsetpxs = size / 2
+offsetpxs = 0 #size / 2
 offset = (offsetpxs, offsetpxs)
 fltr_resize_perc = [2, 2]
 num_pyr = 3
