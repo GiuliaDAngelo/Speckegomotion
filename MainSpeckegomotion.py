@@ -2,6 +2,8 @@ from Speckegolayer_functions import *
 from configSpeckmain import *
 from controller.helper import run_controller
 import serial
+import matplotlib
+matplotlib.use('TkAgg')
 
 
 
@@ -45,7 +47,7 @@ if __name__ == "__main__":
     event_thread.daemon = True
     event_thread.start()
     showstats = False
-    pantiltunit = True
+    pantiltunit = False
     if showstats:
         plt.figure()
     # Main loop for visualization
@@ -57,10 +59,10 @@ if __name__ == "__main__":
                     egomap, indexes = egomotion(window, netegomotion, numevs, device)
                     salmap, salmap_coords = run_attention(egomap, netattention, device)
                     # are the location of maximum attention value, values are between -1 and 1
-                    cmd = run_controller(
-                            np.array([salmap_coords[1]/(resolution[1]), salmap_coords[0]/(resolution[1])]),
-                            np.array([0.5, 0.5])
-                        )
+                    # cmd = run_controller(
+                    #         np.array([salmap_coords[1]/(resolution[1]), salmap_coords[0]/(resolution[1])]),
+                    #         np.array([0.5, 0.5])
+                    #     )
                     cv2.imshow('Events', window)
                     cv2.imshow('Events after Suppression', egomap[0])
                     cv2.circle(salmap, (salmap_coords[1], salmap_coords[0]), 5, (255, 255, 255), -1)
@@ -69,9 +71,9 @@ if __name__ == "__main__":
                     window.fill(0)
                     # sending commands to the pantilt unit; format the command (assuming the device uses "PP<angle>" and "TP<angle>")
                     # rescale cmd to pan_range & tilt_range
-                    pan_angle = int((cmd[0] * (pan_range[1] - pan_range[0]) / 2) + (pan_range[1] + pan_range[0]) / 2)
-                    tilt_angle = int(
-                        (cmd[1] * (tilt_range[1] - tilt_range[0]) / 2) + (tilt_range[1] + tilt_range[0]) / 2)
+                    # pan_angle = int((cmd[0] * (pan_range[1] - pan_range[0]) / 2) + (pan_range[1] + pan_range[0]) / 2)
+                    # tilt_angle = int(
+                    #     (cmd[1] * (tilt_range[1] - tilt_range[0]) / 2) + (tilt_range[1] + tilt_range[0]) / 2)
                     if pantiltunit:
                         with serial.Serial(serial_port, baud_rate, timeout=1) as ser:
                             pan_command = f'PP{pan_angle}\n'
