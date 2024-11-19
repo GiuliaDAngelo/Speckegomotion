@@ -178,7 +178,7 @@ def plot_kernel(kernel,size):
 
 def fetch_events(sink, window, drop_rate, events_lock, numevs):
     while True:
-        events = sink.get_events_blocking(1000)
+        events = sink.get_events_blocking(1000) #ms
         if events:
             filtered_events = [event for event in events if random.random() > drop_rate]
             with events_lock:
