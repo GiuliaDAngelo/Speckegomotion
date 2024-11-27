@@ -167,7 +167,7 @@ def create_vm_filters(thetas, size, rho, r0, thick, offset):
 
 def plot_kernel(kernel,size):
     #plot kernel 3D
-    fig = plt.figure(kernel)
+    fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     x = torch.linspace(-size // 2, size // 2, size)
     y = torch.linspace(-size // 2, size // 2, size)
