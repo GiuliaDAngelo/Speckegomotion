@@ -7,7 +7,11 @@ resolution = [128, 128] # Resolution of the DVS sensor
 max_x = resolution[0]
 max_y = resolution[1]
 drop_rate = 0.0  # Percentage of events to drop
+<<<<<<< HEAD
 update_interval = 0.001 #0.02 #seconds
+=======
+update_interval = 0.02  # Update every 0.02 seconds
+>>>>>>> ad813c4 (WIP attention in a separate thread)
 last_update_time = time.time()
 
 
