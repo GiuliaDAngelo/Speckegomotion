@@ -24,16 +24,39 @@ if __name__ == '__main__':
     if save_res:
         create_results_folders(respath)
 
-    # create kernel Gaussian distribution
-    gauss_kernel = gaussian_kernel(size_krn, sigma)
-    # plot_kernel(gauss_kernel,gauss_kernel.size(0))
-    filter = gauss_kernel.unsqueeze(0)
+    # loading egomotion kernel
+    filter_egomotion = egokernel()
+
+    # Initialize the network with the loaded filter
+    netegomotion = net_def(filter_egomotion,tau_mem, num_pyr, filter_egomotion.size(1))
 
     # Load event-based data from a specified .npy file.
     [frames, max_y, max_x, time_wnd_frames] = load_eventsnpy(polarity, dur_video, FPSvideo, filePathOrName, tsFLAG)
 
-    # run(filter_dog, filter_gauss, frames, max_x, max_y,time_wnd_frames)
-    run(filter, frames, max_x, max_y,time_wnd_frames)
+    # run(filter, frames, max_x, max_y,time_wnd_frames)
+    # Define motion parameters
+    cnt=0
+    device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+    for frame in frames.numpy():
+        print(str(cnt) + " frame out of " + str(frames.shape[0]))
+        egomap, indexes = egomotion(frame[0], netegomotion, 1, device,(max_y+1), (max_x+1))
+
+        # Show the egomap
+        if show_egomap:
+            # plot the frame and overlap the max point of the saliency map with a red dot
+            plt.clf()
+
+            #plot suppression map
+            plt.imshow(egomap.squeeze(0), cmap='gray')
+            plt.colorbar(shrink=0.3)
+            # plt.title('Suppression Map')
+
+            plt.draw()
+            plt.pause(0.001)
+        if save_res:
+            # save the plot in a video
+            plt.savefig(respath + 'egomaps/egomap' + str(cnt) + '.png')
+        cnt+=1
 
     # Save the results as videos
     if save_res:
