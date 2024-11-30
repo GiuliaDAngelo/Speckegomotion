@@ -2,9 +2,9 @@ numpy
 torch
 matplotlib
 opencv-python
-pickle
-os
 natsort
 torch
 torchvision
 loguru
+PySide6
+pyqtgraph

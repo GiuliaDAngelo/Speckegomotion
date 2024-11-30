@@ -171,20 +171,10 @@ def plot_kernel(kernel,size):
     ax = fig.add_subplot(111, projection='3d')
     x = torch.linspace(-size // 2, size // 2, size)
     y = torch.linspace(-size // 2, size // 2, size)
-    x, y = torch.meshgrid(x, y)
+    x, y = torch.meshgrid(x, y, indexing='ij')
     ax.plot_surface(x.numpy(), y.numpy(), kernel.numpy(), cmap='jet')
     plt.show()
 
-
-def fetch_events(sink, window, drop_rate, events_lock, numevs):
-    while True:
-        events = sink.get_events_blocking(1000) #ms
-        if events:
-            filtered_events = [event for event in events if random.random() > drop_rate]
-            with events_lock:
-                if filtered_events:
-                    window[[event.y for event in filtered_events], [event.x for event in filtered_events]] = 255
-                    numevs[0] += len(filtered_events)
 
 def Specksetup():
     # List all connected devices
@@ -225,7 +215,7 @@ def gaussian_kernel(size, sigma):
     # Create a grid of (x, y) coordinates using PyTorch
     x = torch.linspace(-size // 2, size // 2, size)
     y = torch.linspace(-size // 2, size // 2, size)
-    x, y = torch.meshgrid(x, y)
+    x, y = torch.meshgrid(x, y, indexing='ij')
 
     # Create a Gaussian kernel
     kernel = torch.exp(-(x**2 + y**2) / (2 * sigma**2))

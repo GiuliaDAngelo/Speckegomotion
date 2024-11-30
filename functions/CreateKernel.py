@@ -11,7 +11,7 @@ def difference_of_gaussian(size, sigma1, sigma2):
     # Create a grid of (x, y) coordinates using PyTorch
     x = torch.linspace(-size // 2, size // 2, size)
     y = torch.linspace(-size // 2, size // 2, size)
-    x, y = torch.meshgrid(x, y)
+    x, y = torch.meshgrid(x, y, indexing='ij')
 
     # Create two Gaussian kernels with different sigmas
     gaussian1 = (torch.exp(-(x**2 + y**2) / (2 * sigma1**2)))/(np.sqrt(2*np.pi)*sigma1)

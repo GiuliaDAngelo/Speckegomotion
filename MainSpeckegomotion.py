@@ -4,19 +4,18 @@ from controller.helper import run_controller
 import serial
 import matplotlib
 from datetime import datetime
-from dataclasses import dataclass
-from threading import Event
+
+
 from threading import Thread
 matplotlib.use('TkAgg')
+import pyqtgraph as pg
 from loguru import logger
 
-
-@dataclass
-class Flags:
-    attention = Event()
-    halt = Event()
+from .types import Flags
 
 flags = Flags()
+
+
 
 def perform_attention_with_pan_tilt(dummy_pan_tilt: bool = True, showstats: bool = False):
 
@@ -30,59 +29,59 @@ def perform_attention_with_pan_tilt(dummy_pan_tilt: bool = True, showstats: bool
             break
 
         logger.info("Computing egomotion")
-        egomap, indexes = egomotion(window, netegomotion, numevs, device)
+        # egomap, indexes = egomotion(window, netegomotion, numevs, device)
 
-        logger.info("Computing attention")
-        salmap, salmap_coords = run_attention(egomap, netattention, device)
-        # are the location of maximum attention value, values are between -1 and 1
-        cmd = run_controller(
-                np.array([salmap_coords[1]/(resolution[1]), salmap_coords[0]/(resolution[1])]),
-                np.array([0.5, 0.5])
-            )
+        # logger.info("Computing attention")
+        # salmap, salmap_coords = run_attention(egomap, netattention, device)
+        # # are the location of maximum attention value, values are between -1 and 1
+        # cmd = run_controller(
+        #         np.array([salmap_coords[1]/(resolution[1]), salmap_coords[0]/(resolution[1])]),
+        #         np.array([0.5, 0.5])
+        #     )
 
-        pan_angle = int((cmd[0] * (pan_range[1] - pan_range[0]) / 2) + (pan_range[1] + pan_range[0]) / 2)
-        tilt_angle = int(
-            (cmd[1] * (tilt_range[1] - tilt_range[0]) / 2) + (tilt_range[1] + tilt_range[0]) / 2)
+        # pan_angle = int((cmd[0] * (pan_range[1] - pan_range[0]) / 2) + (pan_range[1] + pan_range[0]) / 2)
+        # tilt_angle = int(
+        #     (cmd[1] * (tilt_range[1] - tilt_range[0]) / 2) + (tilt_range[1] + tilt_range[0]) / 2)
 
-        # cv2.imshow('Events', window)
-        # cv2.imshow('Events after Suppression', egomap[0])
-        # cv2.circle(salmap, (salmap_coords[1], salmap_coords[0]), 5, (255, 255, 255), -1)
-        # cv2.imshow('Saliency Map', cv2.applyColorMap(cv2.convertScaleAbs(salmap), cv2.COLORMAP_JET))
-        # cv2.waitKey(1)
+        # # cv2.imshow('Events', window)
+        # # cv2.imshow('Events after Suppression', egomap[0])
+        # # cv2.circle(salmap, (salmap_coords[1], salmap_coords[0]), 5, (255, 255, 255), -1)
+        # # cv2.imshow('Saliency Map', cv2.applyColorMap(cv2.convertScaleAbs(salmap), cv2.COLORMAP_JET))
+        # # cv2.waitKey(1)
 
-        if showstats:
-            #print number of events
-            # print('Number of events: ' + str(numevs[0]))
-            # print('Number of suprressed events:', indexes.sum().item())
-            plt.plot([current_time], [numevs[0]], 'ro-', label='Events')
-            plt.plot([current_time], [indexes.sum().item()], 'bo-', label='Events after suppression')
-            plt.plot([current_time], [numevs[0] - indexes.sum().item()], 'yo-', label='Events dropping')
-            plt.title('Comparison of Events before and after suppression')
-            plt.xlabel('Time')
-            plt.ylabel('Events Count')
-            if not plt.gca().get_legend():
-                plt.legend()
-            plt.pause(0.001)  # Pause to update the figure
+        # if showstats:
+        #     #print number of events
+        #     # print('Number of events: ' + str(numevs[0]))
+        #     # print('Number of suprressed events:', indexes.sum().item())
+        #     plt.plot([current_time], [numevs[0]], 'ro-', label='Events')
+        #     plt.plot([current_time], [indexes.sum().item()], 'bo-', label='Events after suppression')
+        #     plt.plot([current_time], [numevs[0] - indexes.sum().item()], 'yo-', label='Events dropping')
+        #     plt.title('Comparison of Events before and after suppression')
+        #     plt.xlabel('Time')
+        #     plt.ylabel('Events Count')
+        #     if not plt.gca().get_legend():
+        #         plt.legend()
+        #     plt.pause(0.001)  # Pause to update the figure
 
-        # Dummy pan & tilt
-        if dummy_pan_tilt:
-            time.sleep(0.5)
-        else:
-            with serial.Serial(serial_port, baud_rate, timeout=1) as ser:
-                pan_command = f'PP{pan_angle}\n'
-                tilt_command = f'TP{tilt_angle}\n'
+        # # Dummy pan & tilt
+        # if dummy_pan_tilt:
+        #     time.sleep(0.5)
+        # else:
+        #     with serial.Serial(serial_port, baud_rate, timeout=1) as ser:
+        #         pan_command = f'PP{pan_angle}\n'
+        #         tilt_command = f'TP{tilt_angle}\n'
 
-                # Send the pan and tilt commands
-                send_command(ser, f'PU\n')
-                send_command(ser, pan_command)
-                send_command(ser, f'TU\n')
-                send_command(ser, tilt_command)
-                send_command(ser, f'A\n')
-                response = ser.readline().decode('utf-8').strip()
+        #         # Send the pan and tilt commands
+        #         send_command(ser, f'PU\n')
+        #         send_command(ser, pan_command)
+        #         send_command(ser, f'TU\n')
+        #         send_command(ser, tilt_command)
+        #         send_command(ser, f'A\n')
+        #         response = ser.readline().decode('utf-8').strip()
 
-            if response:
-                print(f"Response from device: {response}")
-                pass
+        #     if response:
+        #         print(f"Response from device: {response}")
+        #         pass
 
         logger.info("Attention complete")
         flags.attention.clear()
@@ -153,59 +152,64 @@ if __name__ == "__main__":
     # Main loop for visualization
     while True:
         current_time = time.time()
-        with events_lock:
-            if current_time - last_update_time > update_interval:
-                if numevs[0] > 0:
-                    egomap, indexes = egomotion(window, netegomotion, numevs, device)
-                    salmap, salmap_coords = run_attention(egomap, netattention, device)
-                    # are the location of maximum attention value, values are between -1 and 1
-                    # cmd = run_controller(
-                    #         np.array([salmap_coords[1]/(resolution[1]), salmap_coords[0]/(resolution[1])]),
-                    #         np.array([0.5, 0.5])
-                    #     )
-                    cv2.imshow('Events', window)
-                    cv2.imshow('Events after Suppression', egomap[0])
-                    cv2.circle(salmap, (salmap_coords[1], salmap_coords[0]), 5, (255, 255, 255), -1)
-                    cv2.imshow('Saliency Map', cv2.applyColorMap(cv2.convertScaleAbs(salmap), cv2.COLORMAP_JET))
-                    cv2.waitKey(1)
-                    window.fill(0)
-                    # sending commands to the pantilt unit; format the command (assuming the device uses "PP<angle>" and "TP<angle>")
-                    # rescale cmd to pan_range & tilt_range
-                    # pan_angle = int((cmd[0] * (pan_range[1] - pan_range[0]) / 2) + (pan_range[1] + pan_range[0]) / 2)
-                    # tilt_angle = int(
-                    #     (cmd[1] * (tilt_range[1] - tilt_range[0]) / 2) + (tilt_range[1] + tilt_range[0]) / 2)
-                    if pantiltunit:
-                        with serial.Serial(serial_port, baud_rate, timeout=1) as ser:
-                            pan_command = f'PP{pan_angle}\n'
-                            tilt_command = f'TP{tilt_angle}\n'
+        try:
+            with events_lock:
+                if current_time - last_update_time > update_interval:
+                    if numevs[0] > 0:
+                        egomap, indexes = egomotion(window, netegomotion, numevs, device)
+                        salmap, salmap_coords = run_attention(egomap, netattention, device)
 
-                            # Send the pan and tilt commands
-                            send_command(ser, f'PU\n')
-                            send_command(ser, pan_command)
-                            send_command(ser, f'TU\n')
-                            send_command(ser, tilt_command)
-                            send_command(ser, f'A\n')
-                            response = ser.readline().decode('utf-8').strip()
-                        if response:
-                            print(f"Response from device: {response}")
-                            pass
-                    if showstats:
-                        #print number of events
-                        # print('Number of events: ' + str(numevs[0]))
-                        # print('Number of suprressed events:', indexes.sum().item())
-                        plt.plot([current_time], [numevs[0]], 'ro-', label='Events')
-                        plt.plot([current_time], [indexes.sum().item()], 'bo-', label='Events after suppression')
-                        plt.plot([current_time], [numevs[0] - indexes.sum().item()], 'yo-', label='Events dropping')
-                        plt.title('Comparison of Events before and after suppression')
-                        plt.xlabel('Time')
-                        plt.ylabel('Events Count')
-                        if not plt.gca().get_legend():
-                            plt.legend()
-                        plt.pause(0.001)  # Pause to update the figure
-                    numevs[0] = 0
-                last_update_time = current_time
+                        # --------------------------------------
+                        # are the location of maximum attention value, values are between -1 and 1
+                        # cmd = run_controller(
+                        #         np.array([salmap_coords[1]/(resolution[1]), salmap_coords[0]/(resolution[1])]),
+                        #         np.array([0.5, 0.5])
+                        #     )
+                        # cv2.imshow('Events', window)
+                        # cv2.imshow('Events after Suppression', egomap[0])
+                        # cv2.circle(salmap, (salmap_coords[1], salmap_coords[0]), 5, (255, 255, 255), -1)
+                        # cv2.imshow('Saliency Map', cv2.applyColorMap(cv2.convertScaleAbs(salmap), cv2.COLORMAP_JET))
+                        # cv2.waitKey(1)
+                        # window.fill(0)
+                        # sending commands to the pantilt unit; format the command (assuming the device uses "PP<angle>" and "TP<angle>")
+                        # rescale cmd to pan_range & tilt_range
+                        # pan_angle = int((cmd[0] * (pan_range[1] - pan_range[0]) / 2) + (pan_range[1] + pan_range[0]) / 2)
+                        # tilt_angle = int(
+                        #     (cmd[1] * (tilt_range[1] - tilt_range[0]) / 2) + (tilt_range[1] + tilt_range[0]) / 2)
+                        if pantiltunit:
+                            with serial.Serial(serial_port, baud_rate, timeout=1) as ser:
+                                pan_command = f'PP{pan_angle}\n'
+                                tilt_command = f'TP{tilt_angle}\n'
+
+                                # Send the pan and tilt commands
+                                send_command(ser, f'PU\n')
+                                send_command(ser, pan_command)
+                                send_command(ser, f'TU\n')
+                                send_command(ser, tilt_command)
+                                send_command(ser, f'A\n')
+                                response = ser.readline().decode('utf-8').strip()
+                            if response:
+                                print(f"Response from device: {response}")
+                                pass
+                        if showstats:
+                            #print number of events
+                            # print('Number of events: ' + str(numevs[0]))
+                            # print('Number of suprressed events:', indexes.sum().item())
+                            plt.plot([current_time], [numevs[0]], 'ro-', label='Events')
+                            plt.plot([current_time], [indexes.sum().item()], 'bo-', label='Events after suppression')
+                            plt.plot([current_time], [numevs[0] - indexes.sum().item()], 'yo-', label='Events dropping')
+                            plt.title('Comparison of Events before and after suppression')
+                            plt.xlabel('Time')
+                            plt.ylabel('Events Count')
+                            if not plt.gca().get_legend():
+                                plt.legend()
+                            plt.pause(0.001)  # Pause to update the figure
+                        numevs[0] = 0
+                    last_update_time = current_time
 
         finally:
             clean_up()
             event_thread.join()
             attention_thread.join()
+
+
