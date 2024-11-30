@@ -235,7 +235,7 @@ def gaussian_kernel(size, sigma):
     # kernel = kernel * 2 - 1
     return kernel
 
-def egomotion(window, net, numevs, device):
+def egomotion(window, net, numevs, device, suppression):
     window = torch.from_numpy(window).unsqueeze(0).float().to(device)
 
     egomap = net(window)
@@ -244,9 +244,17 @@ def egomotion(window, net, numevs, device):
     # frame, egomap between 0 and 255
     frame = (window - window.min()) / (window.max() - window.min()) * 255
     egomap = (egomap - egomap.min()) / (egomap.max() - egomap.min()) * 255
-    suppression = torch.zeros((1, max_y, max_x), device=device)
+    # suppression = torch.zeros((1, max_y, max_x), device=device)
     # where egomap is over the threashold suppression max = frame
     indexes = egomap >= threshold
+    suppression.zero_()
     suppression[indexes] = frame[indexes]
-    suppression=np.array(suppression.detach().cpu().numpy(), dtype=np.uint8)
-    return suppression, indexes
+    # egomap[:] = suppression.detach().cpu()
+    return indexes
+
+def conv_size(window: np.ndarray, kernel_size: int):
+
+    width = (window.shape[0] - kernel_size + 1)
+    height = (window.shape[1] - kernel_size + 1) 
+
+    return (height, width)

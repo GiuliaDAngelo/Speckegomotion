@@ -32,54 +32,58 @@ from dataclasses import dataclass
 from multiprocessing import Event
 
 
+import matplotlib
+#tkagg
+matplotlib.use('TkAgg')
+
 @dataclass
 class Flags:
     events = Event()
-    attention = Event()
+    pantilt = Event()
+    movement = Event()
     halt = Event()
 
 
 matplotlib.use("TkAgg")
+fig, ax = plt.subplots(1,1, figsize=(12,8))
 
 
 def perform_attention_with_pan_tilt(
     dummy_pan_tilt: bool = True,
     showstats: bool = False,
     flags: Flags = None,
+    suppression: np.ndarray = None,
+    pr: np.ndarray = None,
+    tr: np.ndarray= None,
 ):
+
+    pan_norm = (pr[1] - pr[0]) / 2
+    tilt_norm = (tr[1] - tr[0]) / 2
 
     while not flags.halt.is_set():
 
-        logger.info("Waiting for events to accumulate...")
-        flags.attention.wait()
+        # logger.info("Waiting for events to accumulate...")
+        flags.pantilt.wait()
 
         if flags.halt.is_set():
             break
 
-        logger.info("Attention started")
-        time.sleep(random.gauss(1, 0.05))
-
-        logger.info("Computing egomotion")
-        time.sleep(random.gauss(1, 0.05))
-        egomap, indexes = egomotion(window, netegomotion, numevs, device)
-
-        logger.info("Computing attention")
-        salmap, salmap_coords = run_attention(egomap, netattention, device)
-        # are the location of maximum attention value, values are between -1 and 1
+        # cmds values are between -1 and 1
         cmd = run_controller(
                 np.array([salmap_coords[1]/(resolution[1]), salmap_coords[0]/(resolution[1])]),
                 np.array([0.5, 0.5])
             )
+        
 
-        pan_angle = int((cmd[0] * (pan_range[1] - pan_range[0]) / 2) + (pan_range[1] + pan_range[0]) / 2)
-        tilt_angle = int(
-            (cmd[1] * (tilt_range[1] - tilt_range[0]) / 2) + (tilt_range[1] + tilt_range[0]) / 2)
+        # pan_angle = int((cmd[0] * (pan_range[1] - pan_range[0]) / 2) + (pan_range[1] + pan_range[0]) / 2)
+        # tilt_angle = int(
+        #     (cmd[1] * (tilt_range[1] - tilt_range[0]) / 2) + (tilt_range[1] + tilt_range[0]) / 2)
+        
 
-        # # cv2.imshow('Events', window)
-        # # cv2.imshow('Events after Suppression', egomap[0])
-        # # cv2.circle(salmap, (salmap_coords[1], salmap_coords[0]), 5, (255, 255, 255), -1)
-        # # cv2.imshow('Saliency Map', cv2.applyColorMap(cv2.convertScaleAbs(salmap), cv2.COLORMAP_JET))
-        # # cv2.waitKey(1)
+        pan_angle = (pr[0] + (cmd[0] + 1) * pan_norm).astype(np.int32)
+        tilt_angle =(tr[0] + (cmd[1] + 1) * tilt_norm).astype(np.int32)
+
+        logger.info(f"Moving | cmd: ({cmd[0]:>0.3f},{cmd[1]:>0.3f}) | {salmap_coords} | pan_angle: {pan_angle} / {pr} | tilt_angle {tilt_angle} / {tilt_range}")
 
         # if showstats:
         #     #print number of events
@@ -113,47 +117,52 @@ def perform_attention_with_pan_tilt(
 
             if response:
                 print(f"Response from device: {response}")
-                pass
 
-        logger.info("Attention complete")
-        flags.events.set()
-
-
-def fetch_events(
-    sink=None,
-    window=None,
-    drop_rate=None,
-    events_lock=None,
-    numevs=None,
-    flags: Flags = None,
-):
-    logger.info("Fetch_events started.")
-    while not flags.halt.is_set():
-        logger.info("Waiting for attention to finish...")
-        flags.events.wait()
-
-        if flags.halt.is_set():
-            break
-        logger.info("Accumulating events...")
-
-        time.sleep(random.gauss(1, 0.05))
-        # events = sink.get_events_blocking(1000)  # ms
-        # if events:
-        #     filtered_events = [event for event in events if random.random() > drop_rate]
-        #     with events_lock:
-        #         if filtered_events:
-        #             window[
-        #                 [event.y for event in filtered_events],
-        #                 [event.x for event in filtered_events],
-        #             ] = 255
-        #             numevs[0] += len(filtered_events)
-        flags.attention.set()
+        # logger.info("Attention complete")
+        flags.pantilt.clear()
 
 
-def clean_up():
+# def fetch_events(
+#     sink=None,
+#     window=None,
+#     drop_rate=None,
+#     events_lock=None,
+#     numevs=None,
+#     flags: Flags = None,
+# ):
+#     logger.info("Fetch_events started.")
+#     while not flags.halt.is_set():
+#         logger.info("Waiting for attention to finish...")
+#         flags.events.wait()
+
+#         if flags.halt.is_set():
+#             break
+#         logger.info("Accumulating events...")
+#         # time.sleep(random.gauss(1, 0.05))
+        
+#         events = sink.get_events_blocking(1000)  # ms
+#         if events:
+#             filtered_events = [event for event in events if random.random() > drop_rate]
+#             with events_lock:
+#                 if filtered_events:
+#                     window[
+#                         [event.y for event in filtered_events],
+#                         [event.x for event in filtered_events],
+#                     ] = 255
+#                     numevs[0] += len(filtered_events)
+        
+#             flags.events.clear()
+#             flags.attention.set()
+
+#         else:
+#             logger.info("No events, exiting...")
+#             flags.halt.set()
+
+def clean_up():    
     flags.halt.set()
-    flags.attention.set()
-
+    flags.events.set()
+    flags.pantilt.set()
+    
 
 if __name__ == "__main__":
 
@@ -185,42 +194,46 @@ if __name__ == "__main__":
     baud_rate = 9600
 
     # Define pan and tilt range values
-    pan_range = (
+    pan_range = np.array([
         -3090,
         3090,
-    )  # Replace with actual pan range of your device if different
-    tilt_range = (
+    ])  # Replace with actual pan range of your device if different
+    tilt_range = np.array([
         -907,
         604,
-    )  # Replace with actual tilt range of your device if different
+    ])  # Replace with actual tilt range of your device if different
 
     ##### Speck initialisation for the sink #####
     # Set the Speck and sink events
-    # sink, window, numevs, events_lock = Specksetup()
-    sink = None
-    window = np.zeros((resolution[1], resolution[0]), dtype=np.uint8)
-    numevs = [0]  # Use a list to allow modification within the thread
-    events_lock = threading.Lock()
+    sink, window, numevs, events_lock = Specksetup()
+    ####### if we do not have the speck
+    # sink = None
+    # window = np.zeros((resolution[1], resolution[0]), dtype=np.uint8)
+    # numevs = [0]  # Use a list to allow modification within the thread
+    # events_lock = threading.Lock()
 
     # A switch for emulating pan/tilt motion
     showstats = False
     pantiltunit = True
-    dummy_pan_tilt = True
+    dummy_pan_tilt = False
 
     # Start the event-fetching thread
-    event_thread = threading.Thread(
-        target=fetch_events, args=(sink, window, drop_rate, events_lock, numevs, flags)
-    )
-    event_thread.daemon = True
-    event_thread.start()
+    # event_thread = threading.Thread(
+    #     target=fetch_events, args=(sink, window, drop_rate, events_lock, numevs, flags)
+    # )
+    # event_thread.daemon = True
+    # event_thread.start()
+
+    suppression = torch.zeros((1, max_y, max_x), device=device)
 
     attention_thread = threading.Thread(
         target=perform_attention_with_pan_tilt,
-        args=(dummy_pan_tilt, showstats, flags),
-        daemon=True,
+        args=(dummy_pan_tilt, showstats, flags, suppression, pan_range, tilt_range),
     )
     attention_thread.daemon = True
     attention_thread.start()
+
+    salmap_coords = np.array([0, 0])
 
     if showstats:
         plt.figure()
@@ -231,85 +244,61 @@ if __name__ == "__main__":
         salmaps_coordinates = []
         windows = []
     # Main loop for visualization
-    while True:
+
+    flags.events.set()
+    while not flags.halt.is_set():
         current_time = datetime.now()
         logger.info("Processing...")
-        flags.events.set()
 
         try:
-            time.sleep(10)
-            #     with events_lock:
-            #         if current_time - last_update_time > update_interval:
-            #             if numevs[0] > 0:
-            #                 egomap, indexes = egomotion(
-            #                     window, netegomotion, numevs, device
-            #                 )
-            #                 salmap, salmap_coords = run_attention(
-            #                     egomap, netattention, device
-            #                 )
+            while True:
+            
+                # logger.info("Waiting for attention to finish...")
 
-            #                 # --------------------------------------
-            #                 # are the location of maximum attention value, values are between -1 and 1
-            #                 # cmd = run_controller(
-            #                 #         np.array([salmap_coords[1]/(resolution[1]), salmap_coords[0]/(resolution[1])]),
-            #                 #         np.array([0.5, 0.5])
-            #                 #     )
-            #                 # cv2.imshow('Events', window)
-            #                 # cv2.imshow('Events after Suppression', egomap[0])
-            #                 # cv2.circle(salmap, (salmap_coords[1], salmap_coords[0]), 5, (255, 255, 255), -1)
-            #                 # cv2.imshow('Saliency Map', cv2.applyColorMap(cv2.convertScaleAbs(salmap), cv2.COLORMAP_JET))
-            #                 # cv2.waitKey(1)
-            #                 # window.fill(0)
-            #                 # sending commands to the pantilt unit; format the command (assuming the device uses "PP<angle>" and "TP<angle>")
-            #                 # rescale cmd to pan_range & tilt_range
-            #                 # pan_angle = int((cmd[0] * (pan_range[1] - pan_range[0]) / 2) + (pan_range[1] + pan_range[0]) / 2)
-            #                 # tilt_angle = int(
-            #                 #     (cmd[1] * (tilt_range[1] - tilt_range[0]) / 2) + (tilt_range[1] + tilt_range[0]) / 2)
-            #                 if pantiltunit:
-            #                     with serial.Serial(
-            #                         serial_port, baud_rate, timeout=1
-            #                     ) as ser:
-            #                         pan_command = f"PP{pan_angle}\n"
-            #                         tilt_command = f"TP{tilt_angle}\n"
+                if flags.halt.is_set():
+                    break
+                # logger.info("Accumulating events...")
+                # time.sleep(random.gauss(1, 0.05))
+                
+                events = sink.get_events_blocking(2000)  # ms
+                if events:
+                    filtered_events = [event for event in events if random.random() > drop_rate]
+                    with events_lock:
+                        if filtered_events:
+                            window[:] = 0
+                            window[
+                                [event.y for event in filtered_events],
+                                [event.x for event in filtered_events],
+                            ] = 255
+                            window[:] = np.flipud(window)
+                            numevs[0] += len(filtered_events)
 
-            #                         # Send the pan and tilt commands
-            #                         send_command(ser, f"PU\n")
-            #                         send_command(ser, pan_command)
-            #                         send_command(ser, f"TU\n")
-            #                         send_command(ser, tilt_command)
-            #                         send_command(ser, f"A\n")
-            #                         response = ser.readline().decode("utf-8").strip()
-            #                     if response:
-            #                         print(f"Response from device: {response}")
-            #                         pass
-            #                 if showstats:
-            #                     # print number of events
-            #                     # print('Number of events: ' + str(numevs[0]))
-            #                     # print('Number of suprressed events:', indexes.sum().item())
-            #                     plt.plot([current_time], [numevs[0]], "ro-", label="Events")
-            #                     plt.plot(
-            #                         [current_time],
-            #                         [indexes.sum().item()],
-            #                         "bo-",
-            #                         label="Events after suppression",
-            #                     )
-            #                     plt.plot(
-            #                         [current_time],
-            #                         [numevs[0] - indexes.sum().item()],
-            #                         "yo-",
-            #                         label="Events dropping",
-            #                     )
-            #                     plt.title(
-            #                         "Comparison of Events before and after suppression"
-            #                     )
-            #                     plt.xlabel("Time")
-            #                     plt.ylabel("Events Count")
-            #                     if not plt.gca().get_legend():
-            #                         plt.legend()
-            #                     plt.pause(0.001)  # Pause to update the figure
-            #                 numevs[0] = 0
-            #             last_update_time = current_time
+                            # logger.info("Attention started")
+
+
+                    # logger.info("Computing egomotion")
+                    # time.sleep(random.gauss(1, 0.05))
+                    indexes = egomotion(window, netegomotion, numevs, device, suppression)
+
+                    # logger.info("Computing attention")
+                    salmap, salmap_coords[:] = run_attention(suppression.detach().cpu().numpy(), netattention, device)
+
+                    flags.pantilt.set()
+
+                    cv2.imshow('Events', window)
+                    cv2.imshow('Events after Suppression', suppression[0].detach().cpu().numpy())
+                    cv2.circle(salmap, (salmap_coords[1], salmap_coords[0]), 5, (255, 255, 255), -1)
+                    cv2.imshow('Saliency Map', cv2.applyColorMap(cv2.convertScaleAbs(salmap), cv2.COLORMAP_JET))
+                    cv2.waitKey(1)
+                
+                else:
+                    logger.info("No events, exiting...")
+                    flags.halt.set()
+
+        except KeyboardInterrupt:
+            flags.halt.set()
             break
+
         finally:
             clean_up()
             event_thread.join()
