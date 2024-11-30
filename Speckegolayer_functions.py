@@ -176,6 +176,16 @@ def plot_kernel(kernel,size):
     plt.show()
 
 
+def fetch_events(sink, window, drop_rate, events_lock, numevs):
+    while True:
+        events = sink.get_events_blocking(1000) #ms
+        if events:
+            filtered_events = [event for event in events if random.random() > drop_rate]
+            with events_lock:
+                if filtered_events:
+                    window[[event.y for event in filtered_events], [event.x for event in filtered_events]] = 255
+                    numevs[0] += len(filtered_events)
+
 def Specksetup():
     # List all connected devices
     device_map = sio.get_device_map()
