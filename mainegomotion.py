@@ -17,6 +17,9 @@ Steps:
 from configmain import *
 from egomotionlayer_functions import *
 
+import matplotlib
+matplotlib.use('TkAgg')
+
 
 if __name__ == '__main__':
 
@@ -37,10 +40,25 @@ if __name__ == '__main__':
     # Define motion parameters
     cnt=0
     device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+    spikes = [[[] for _ in range(max_x + 1)] for _ in range(max_y + 1)]
+    time = 0
     for frame in frames.numpy():
+        time = time+time_wnd_frames
         print(str(cnt) + " frame out of " + str(frames.shape[0]))
-        egomap, indexes = egomotion(frame[0], netegomotion, 1, device,(max_y+1), (max_x+1))
-
+        frame = (frame[0] > 0).astype(int)
+        egomap, indexes = egomotion(frame, netegomotion, 1, device,(max_y+1), (max_x+1))
+        #coordinates where indexes True
+        indtrue = np.where(indexes[0].cpu() == True)
+        for i in range(len(indtrue[0])):
+            x = indtrue[1][i]
+            y = indtrue[0][i]
+            spikes[y][x].append(1)
+        # coordinates where indexes False
+        indfalse = np.where(indexes[0].cpu() == False)
+        for i in range(len(indfalse[0])):
+            x = indfalse[1][i]
+            y = indfalse[0][i]
+            spikes[y][x].append(0)
         # Show the egomap
         if show_egomap:
             # plot the frame and overlap the max point of the saliency map with a red dot
@@ -57,6 +75,9 @@ if __name__ == '__main__':
             # save the plot in a video
             plt.savefig(respath + 'egomaps/egomap' + str(cnt) + '.png')
         cnt+=1
+
+    with open(name_exp+'.pkl', 'wb') as f:
+        pickle.dump(spikes, f)
 
     # Save the results as videos
     if save_res:

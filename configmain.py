@@ -3,6 +3,8 @@
 # respath = 'results/ego/'
 respath = 'results/onlyobj/'
 
+name_exp = respath.split('/')[1]
+
 respath_to_file = {
     'results/ego/': "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/ego/ego1/ego1.npy",
     'results/ego3/': "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/ego/ego3/ego3.npy",
