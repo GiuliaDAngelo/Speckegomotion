@@ -45,8 +45,8 @@ if __name__ == "__main__":
     event_thread = threading.Thread(target=fetch_events, args=(sink, window, drop_rate, events_lock, numevs))
     event_thread.daemon = True
     event_thread.start()
-    showstats = True
-    pantiltunit = False
+    showstats = False
+    pantiltunit = True
     if showstats:
         plt.figure()
         num_eve = []
@@ -69,7 +69,7 @@ if __name__ == "__main__":
                     if showstats:
                         attention_maps.append(salmap)
                         salmaps_coordinates.append(salmap_coords)
-                        windows.append(window)
+                        windows.append(egomap[0])
                     cv2.imshow('Events', window)
                     cv2.imshow('Events after Suppression', egomap[0])
                     cv2.circle(salmap, (salmap_coords[1], salmap_coords[0]), 5, (255, 255, 255), -1)
