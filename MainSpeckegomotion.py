@@ -80,7 +80,9 @@ if __name__ == "__main__":
                         # are the location of maximum attention value, values are between -1 and 1
                         cmd = run_controller(
                                 np.array([salmap_coords[1]/(resolution[1]), salmap_coords[0]/(resolution[1])]),
-                                np.array([0.5, 0.5])
+                                np.array([0.5, 0.5]),
+                                k_pan=np.array([2.,0.,0.]),
+                                k_tilt=np.array([2.,0.,0.]),
                             )
 
                         # sending commands to the pantilt unit; format the command (assuming the device uses "PP<angle>" and "TP<angle>")
