@@ -3,7 +3,7 @@ from controller.nengo_controller import NengoController
 
 _nengo_controller_obj = None
 
-def run_controller(salmax_coords, target_coords):
+def run_controller(salmax_coords, target_coords, k_pan, k_tilt):
     global _nengo_controller_obj
     if _nengo_controller_obj is None:
         ## Create a singleton object for the nengo controller.
@@ -13,6 +13,8 @@ def run_controller(salmax_coords, target_coords):
         _nengo_controller_obj = NengoController(
                 target_pan=target_coords[0],
                 target_tilt=target_coords[1],
+                k_pan=k_pan,
+                k_tilt=k_tilt,
         )
     ### end if
     return _nengo_controller_obj(salmax_coords, target_coords)

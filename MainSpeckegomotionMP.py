@@ -71,7 +71,9 @@ def perform_attention_with_pan_tilt(
         # cmds values are between -1 and 1
         cmd = run_controller(
                 np.array([salmap_coords[1]/(resolution[1]), salmap_coords[0]/(resolution[0])]),
-                np.array([0.5, 0.5])
+                np.array([0.5, 0.5]),
+                k_pan=np.array([2., 0., 0.]),
+                k_tilt=np.array([2., 0., 0.]),
             )
         
 
