@@ -48,7 +48,7 @@ def create_results_folders(respath):
     createfld('', respath)
     createfld(respath, '/egomaps')
 
-def load_eventsnpy(polarity, dur_video, FPS, filePathOrName,tsFLAG):
+def load_eventsnpy(polarity, dur_video, FPS, filePathOrName,tsFLAG,time_wnd_frames):
     rec = npy_data(filePathOrName,tsFLAG)
     # find out maximum x and y
 
@@ -60,7 +60,6 @@ def load_eventsnpy(polarity, dur_video, FPS, filePathOrName,tsFLAG):
     rec['p'][rec['p'] == False] = True
     rec['p'] = polarity
     sensor_size = (max_x + 1, max_y + 1, 1)
-    time_wnd_frames=rec['t'].max()/dur_video/FPS
     # print(f"sensor size is {sensor_size}")
     # We have to convert the raw events into frames so that we can feed those to our network
     # We use a library called tonic for that https://tonic.readthedocs.io/en/latest/ as well as torchvision
@@ -69,7 +68,7 @@ def load_eventsnpy(polarity, dur_video, FPS, filePathOrName,tsFLAG):
         torch.tensor,
     ])
     frames = transforms(rec)
-    return frames,max_y, max_x,time_wnd_frames
+    return frames,max_y, max_x
 
 
 def egokernel():

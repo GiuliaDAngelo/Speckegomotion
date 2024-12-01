@@ -6,7 +6,9 @@ import matplotlib
 matplotlib.use('TkAgg')
 
 # Load the spikes_matrix.pkl file
-name_exp = 'objego'
+# name_exp = 'objego'
+name_exp = 'ego'
+# name_exp = 'onlyobj'
 
 with open(name_exp+'.pkl', 'rb') as f:
     spikes = pickle.load(f)
@@ -21,17 +23,13 @@ time_wnd_frames= dur_video/len_fr
 
 # Example usage of the loaded spikes data
 plt.figure()
-neuron_index = 0
-for x in range(max_x):
-    for y in range(max_y):
-        print(neuron_index)
-        neuron  = spikes[y][x]
-        indexes = [i for i, v in enumerate(neuron) if v == 1]
-        plt.vlines(indexes, ymin=neuron_index - 2, ymax=neuron_index + 2, color='black',
-                   linewidth=0.8)
-        plt.xlim(0, time_wnd_frames * len_fr)
-        neuron_index+=1
-plt.ylim(-0.5, neuron_index - 0.5)
+for ind in range(len(spikes)):
+    print(ind)
+    neuron  = spikes[ind]
+    plt.vlines(neuron, ymin=ind - 2, ymax=ind + 2, color='black',
+               linewidth=0.8)
+    plt.xlim(0, time_wnd_frames * len_fr)
+plt.ylim(-0.5, ind - 0.5)
 plt.xlabel('Time (s)')
 plt.ylabel('Neuron')
 # plt.title('Raster plot of Spikes')

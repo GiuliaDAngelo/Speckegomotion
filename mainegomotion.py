@@ -34,13 +34,13 @@ if __name__ == '__main__':
     netegomotion = net_def(filter_egomotion,tau_mem, num_pyr, filter_egomotion.size(1))
 
     # Load event-based data from a specified .npy file.
-    [frames, max_y, max_x, time_wnd_frames] = load_eventsnpy(polarity, dur_video, FPSvideo, filePathOrName, tsFLAG)
-
+    time_wnd_frames = 400
+    [frames, max_y, max_x] = load_eventsnpy(polarity, dur_video, FPSvideo, filePathOrName, tsFLAG, time_wnd_frames)
     # run(filter, frames, max_x, max_y,time_wnd_frames)
     # Define motion parameters
     cnt=0
     device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
-    spikes = [[[] for _ in range(max_x + 1)] for _ in range(max_y + 1)]
+    spikes = [[] for _ in range((max_x+1)*(max_y+1))]
     time = 0
     for frame in frames.numpy():
         time = time+time_wnd_frames
@@ -48,24 +48,18 @@ if __name__ == '__main__':
         frame = (frame[0] > 0).astype(int)
         egomap, indexes = egomotion(frame, netegomotion, 1, device,(max_y+1), (max_x+1))
         #coordinates where indexes True
-        indtrue = np.where(indexes[0].cpu() == True)
+        indtrue = np.argwhere(indexes[0].cpu() == True)
         for i in range(len(indtrue[0])):
             x = indtrue[1][i]
             y = indtrue[0][i]
-            spikes[y][x].append(1)
-        # coordinates where indexes False
-        indfalse = np.where(indexes[0].cpu() == False)
-        for i in range(len(indfalse[0])):
-            x = indfalse[1][i]
-            y = indfalse[0][i]
-            spikes[y][x].append(0)
+            spikes[x+(y*max_x)].append(time)
         # Show the egomap
         if show_egomap:
             # plot the frame and overlap the max point of the saliency map with a red dot
             plt.clf()
 
             #plot suppression map
-            plt.imshow(egomap.squeeze(0), cmap='gray')
+            plt.imshow(egomap.squeeze(0), cmap='gray', vmin=0, vmax=255)
             plt.colorbar(shrink=0.3)
             # plt.title('Suppression Map')
 
@@ -76,8 +70,8 @@ if __name__ == '__main__':
             plt.savefig(respath + 'egomaps/egomap' + str(cnt) + '.png')
         cnt+=1
 
-    with open(name_exp+'.pkl', 'wb') as f:
-        pickle.dump(spikes, f)
+    # with open(name_exp+'.pkl', 'wb') as f:
+    #     pickle.dump(spikes, f)
 
     # Save the results as videos
     if save_res:
