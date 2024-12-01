@@ -75,31 +75,15 @@ def perform_attention_with_pan_tilt(
                 k_pan=np.array([2., 0., 0.]),
                 k_tilt=np.array([2., 0., 0.]),
             )
-        
 
-        # pan_angle = int((cmd[0] * (pan_range[1] - pan_range[0]) / 2) + (pan_range[1] + pan_range[0]) / 2)
-        # tilt_angle = int(
-        #     (cmd[1] * (tilt_range[1] - tilt_range[0]) / 2) + (tilt_range[1] + tilt_range[0]) / 2)
-        
+        alpha = 10
+        pan_angle = (pr[0] + (cmd[0]*alpha + 1) * pan_norm).astype(np.int32)
+        tilt_angle =(tr[0] + (cmd[1]*alpha + 1) * tilt_norm).astype(np.int32)
+        #make a check if pan_angle and tilt_angle are within the range
+        pan_angle = np.clip(pan_angle, pan_range[0], pan_range[1])
+        tilt_angle = np.clip(tilt_angle, tilt_range[0], tilt_range[1])
 
-        pan_angle = (pr[0] + (cmd[0] + 1) * pan_norm).astype(np.int32)
-        tilt_angle =(tr[0] + (cmd[1] + 1) * tilt_norm).astype(np.int32)
-
-        logger.info(f"Moving | cmd: ({cmd[0]:>0.3f},{cmd[1]:>0.3f}) | {salmap_coords} | pan_angle: {pan_angle} / {pr} | tilt_angle {tilt_angle} / {tilt_range}")
-
-        # if showstats:
-        #     #print number of events
-        #     # print('Number of events: ' + str(numevs[0]))
-        #     # print('Number of suprressed events:', indexes.sum().item())
-        #     plt.plot([current_time], [numevs[0]], 'ro-', label='Events')
-        #     plt.plot([current_time], [indexes.sum().item()], 'bo-', label='Events after suppression')
-        #     plt.plot([current_time], [numevs[0] - indexes.sum().item()], 'yo-', label='Events dropping')
-        #     plt.title('Comparison of Events before and after suppression')
-        #     plt.xlabel('Time')
-        #     plt.ylabel('Events Count')
-        #     if not plt.gca().get_legend():
-        #         plt.legend()
-        #     plt.pause(0.001)  # Pause to update the figure
+        logger.info(f"Moving | cmd: ({cmd[0]:>0.3f},{cmd[1]:>0.3f}) | salmap coords:  {salmap_coords} | pan_angle: {pan_angle} / {pr} | tilt_angle {tilt_angle} / {tilt_range}")
 
         # Dummy pan & tilt
         if dummy_pan_tilt:
@@ -116,6 +100,7 @@ def perform_attention_with_pan_tilt(
                 send_command(ser, tilt_command)
                 send_command(ser, f'A\n')
                 response = ser.readline().decode('utf-8').strip()
+
 
             if response:
                 print(f"Response from device: {response}")
