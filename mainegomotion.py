@@ -34,7 +34,7 @@ if __name__ == '__main__':
     netegomotion = net_def(filter_egomotion,tau_mem, num_pyr, filter_egomotion.size(1))
 
     # Load event-based data from a specified .npy file.
-    time_wnd_frames = 400
+    time_wnd_frames = 10
     [frames, max_y, max_x] = load_eventsnpy(polarity, dur_video, FPSvideo, filePathOrName, tsFLAG, time_wnd_frames)
     # run(filter, frames, max_x, max_y,time_wnd_frames)
     # Define motion parameters
@@ -70,8 +70,8 @@ if __name__ == '__main__':
             plt.savefig(respath + 'egomaps/egomap' + str(cnt) + '.png')
         cnt+=1
 
-    # with open(name_exp+'.pkl', 'wb') as f:
-    #     pickle.dump(spikes, f)
+    with open(name_exp+'.pkl', 'wb') as f:
+        pickle.dump(spikes, f)
 
     # Save the results as videos
     if save_res:

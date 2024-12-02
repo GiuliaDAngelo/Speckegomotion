@@ -1,7 +1,7 @@
 
 # respath = 'results/objego/'
-# respath = 'results/ego/'
-respath = 'results/onlyobj/'
+respath = 'results/ego/'
+# respath = 'results/onlyobj/'
 
 name_exp = respath.split('/')[1]
 
