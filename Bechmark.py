@@ -52,7 +52,15 @@ if __name__ == '__main__':
     filter_egomotion = egokernel()
 
     # Initialize the network with the loaded filter
-    netegomotion = net_def(filter_egomotion,tau_mem, num_pyr, filter_egomotion.size(1))
+    # define our single layer network and load the filters
+    device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+    netegomotion = nn.Sequential(
+        nn.Conv2d(1, num_pyr, (size_krn_surround,size_krn_surround), stride=1, bias=False),
+        sl.LIF(tau_mem),
+    )
+    netegomotion[0].weight.data = filter_egomotion.unsqueeze(1).to(device)
+    netegomotion[1].v_mem = netegomotion[1].tau_mem * netegomotion[1].v_mem.to(device)
+
 
     time_wnd_frames = 400
 
