@@ -1,21 +1,25 @@
 
 # respath = 'results/objego/'
-respath = 'results/ego/'
+# respath = 'results/ego/'
 # respath = 'results/onlyobj/'
 
-name_exp = respath.split('/')[1]
+respath = 'results/egoscaleexp/1/'
+name_exp = '1'#respath.split('/')[1]
+respath_to_file = '/Users/giuliadangelo/workspace/code/IEBCS/data/video/egoscaleexp/1/1.npy'
+filePathOrName = respath_to_file
 
-respath_to_file = {
-    'results/ego/': "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/ego/ego1/ego1.npy",
-    'results/ego3/': "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/ego/ego3/ego3.npy",
-    'results/ego4/': "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/ego/ego4/ego4.npy",
-    'results/ego5/': "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/ego/ego5/ego5.npy",
-    'results/ego8/': "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/ego/ego8/ego8.npy",
-    'results/objego/': "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/objego/objego.npy",
-    'results/onlyobj/': "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/onlyobj/onlyobj.npy"
-}
 
-filePathOrName = respath_to_file.get(respath, None)
+# respath_to_file = {
+#     'results/ego/': "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/ego/ego1/old/ego1.npy",
+#     # 'results/ego/': "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/ego/ego1/ego1.npy",
+#     'results/ego3/': "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/ego/ego3/ego3.npy",
+#     'results/ego4/': "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/ego/ego4/ego4.npy",
+#     'results/ego5/': "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/ego/ego5/ego5.npy",
+#     'results/ego8/': "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/ego/ego8/ego8.npy",
+#     'results/objego/': "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/objego/objego.npy",
+#     'results/onlyobj/': "/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/onlyobj/onlyobj.npy"
+# }
+# filePathOrName = respath_to_file.get(respath, None)
 
 # Parameters kernel
 size_krn_center = 8  # Size of the kernel (NxN)

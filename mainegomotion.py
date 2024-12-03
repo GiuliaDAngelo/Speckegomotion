@@ -34,9 +34,11 @@ if __name__ == '__main__':
     netegomotion = net_def(filter_egomotion,tau_mem, num_pyr, filter_egomotion.size(1))
 
     # Load event-based data from a specified .npy file.
-    time_wnd_frames = 10
+    time_wnd_frames = 400
     [frames, max_y, max_x] = load_eventsnpy(polarity, dur_video, FPSvideo, filePathOrName, tsFLAG, time_wnd_frames)
     # run(filter, frames, max_x, max_y,time_wnd_frames)
+    len_fr = len(frames)
+    time_wnd_frames = dur_video/len_fr
     # Define motion parameters
     cnt=0
     device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
@@ -46,7 +48,7 @@ if __name__ == '__main__':
         time = time+time_wnd_frames
         print(str(cnt) + " frame out of " + str(frames.shape[0]))
         frame = (frame[0] > 0).astype(int)
-        egomap, indexes = egomotion(frame, netegomotion, 1, device,(max_y+1), (max_x+1))
+        egomap, indexes = egomotion(frame, netegomotion, 1, device, (max_y + 1), (max_x + 1))
         #coordinates where indexes True
         indtrue = np.argwhere(indexes[0].cpu() == True)
         for i in range(len(indtrue[0])):
