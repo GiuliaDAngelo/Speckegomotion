@@ -23,13 +23,13 @@ matplotlib.use('TkAgg')
 
 # Parameters kernel
 size_krn_center = 8  # Size of the kernel (NxN) (all half ) - 8
-sigma_center = 1  # Sigma for the first Gaussian - 1
+sigma_center = 2  # Sigma for the first Gaussian - 1
 size_krn_surround = 8  # Size of the kernel (NxN) - 8
 sigma_surround = 4  # Sigma for the first Gaussian - 4
 
 
-tau_mem = 0.001#0.01
-threshold = 250
+tau_mem = 0.001
+threshold = 0.96
 num_pyr = 1
 
 # Parameters events
@@ -48,20 +48,17 @@ title = respath.split('/')[1]
 
 if __name__ == '__main__':
 
-    # loading egomotion kernel
-    filter_egomotion = egokernel()
+    # loading egomotion kernel, work on the kernel ---> here
+    # filter_egomotion = egokernel()
+    center, surround = OMS()
+    ss = 1
+    sc = ss + sigma_surround - sigma_center
 
     # Initialize the network with the loaded filter
     # define our single layer network and load the filters
     device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
-    netegomotion = nn.Sequential(
-        nn.Conv2d(1, num_pyr, (size_krn_surround,size_krn_surround), stride=1, bias=False),
-        sl.LIF(tau_mem),
-    )
-    netegomotion[0].weight.data = filter_egomotion.unsqueeze(1).to(device)
-    netegomotion[1].v_mem = netegomotion[1].tau_mem * netegomotion[1].v_mem.to(device)
-
-
+    net_center = net_def(center, tau_mem, num_pyr, size_krn_center, device, sc)
+    net_surround = net_def(surround, tau_mem, num_pyr, size_krn_surround, device, ss)
     time_wnd_frames = 400
 
     # Specify the directory to search
@@ -101,11 +98,13 @@ if __name__ == '__main__':
                 device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
                 spikes = [[] for _ in range((max_x+1)*(max_y+1))]
                 time = 0
-                egomaps = []
+                OMS_s = []
                 for frame in frames.astype(int):
                     print(str(cnt) + " frame out of " + str(frames.shape[0]))
-                    egomap, indexes = egomotion(frame[0], netegomotion, 1, device, max_y, max_x)
-                    egomaps.append(egomap)
+                    OMS, indexes = egomotion(frame[0], net_center, net_surround,device, max_y, max_x, threshold)
+                    #normalise OMS[0] between 0 and 255
+                    OMS = (OMS[0] - OMS[0].min()) / (OMS[0].max() - OMS[0].min()) * 255
+                    OMS_s.append(OMS)
                     #coordinates where indexes True
                     indtrue = np.argwhere(indexes[0].cpu() == True)
                     for i in range(len(indtrue[0])):
@@ -118,7 +117,7 @@ if __name__ == '__main__':
                         # plot the frame and overlap the max point of the saliency map with a red dot
                         plt.clf()
                         #plot suppression map
-                        plt.imshow(egomap.squeeze(0), cmap='gray', vmin=0, vmax=255)
+                        plt.imshow(OMS.squeeze(0).cpu().detach().numpy(), cmap='gray', vmin=0, vmax=255)
                         plt.colorbar(shrink=0.3)
                         # plt.title('Suppression Map')
                         plt.draw()
@@ -128,7 +127,7 @@ if __name__ == '__main__':
             with open(name_exp+'.pkl', 'wb') as f:
                 pickle.dump(spikes, f)
             with open('seq'+results_path.split('.npy')[0]+'.pkl', 'wb') as f:
-                pickle.dump(egomaps, f)
+                pickle.dump(OMS_s, f)
 
 
 

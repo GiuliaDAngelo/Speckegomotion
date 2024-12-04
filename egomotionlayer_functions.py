@@ -74,57 +74,65 @@ def load_eventsnpy(polarity, dur_video, FPS, filePathOrName,tsFLAG,time_wnd_fram
 def egokernel():
     # create kernel Gaussian distribution
     gauss_kernel_center = gaussian_kernel(size_krn_center, sigma_center)
+    gauss_kernel_center = gauss_kernel_center/gauss_kernel_center.max()
+
     gauss_kernel_surround = gaussian_kernel(size_krn_surround, sigma_surround)
+    gauss_kernel_surround = gauss_kernel_surround/gauss_kernel_surround.max()
 
     # plot_kernel(gauss_kernel_center,gauss_kernel_center.size(0))
     # plot_kernel(gauss_kernel_surround,gauss_kernel_surround.size(0))
 
-    filter = gauss_kernel_surround - gauss_kernel_center
+    filter =  gauss_kernel_center - gauss_kernel_surround
     # plot_kernel(filter, filter.size(0))
     filter = filter.unsqueeze(0)
     return filter
 
+def OMS():
+    # create kernel Gaussian distribution
+    center = gaussian_kernel(size_krn_center, sigma_center).unsqueeze(0)
+    surround = gaussian_kernel(size_krn_surround, sigma_surround).unsqueeze(0)
+    return center, surround
 
-def net_def(filter, tau_mem, num_pyr, size_krn):
+
+def net_def(filter, tau_mem, num_pyr, size_krn, device, stride):
     # define our single layer network and load the filters
-    device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
     net = nn.Sequential(
-        nn.Conv2d(1, num_pyr, (size_krn,size_krn), stride=1, bias=False),
+        nn.Conv2d(1, num_pyr, (size_krn,size_krn), stride=stride, bias=False),
         sl.LIF(tau_mem),
     )
     net[0].weight.data = filter.unsqueeze(1).to(device)
     net[1].v_mem = net[1].tau_mem * net[1].v_mem.to(device)
     return net
 
-def egomotion(window, net, numevs, device, max_y, max_x):
-    window = torch.from_numpy(window).unsqueeze(0).float().to(device)
 
-    egomap = net(window)
-    egomap = torch.nn.functional.interpolate(egomap.unsqueeze(0), size=(max_y, max_x), mode='bilinear',
-                                                   align_corners=False).squeeze(0)
-    # frame, egomap between 0 and 255
-    frame = (window - window.min()) / (window.max() - window.min()) * 255
-    egomap = (egomap - egomap.min()) / (egomap.max() - egomap.min()) * 255
-    suppression = torch.zeros((1, max_y, max_x), device=device)
-    # where egomap is over the threashold suppression max = frame
-    indexes = egomap >= threshold
-    suppression[indexes] = frame[indexes]
-    suppression=np.array(suppression.detach().cpu().numpy(), dtype=np.uint8)
-    return suppression, indexes
+def egomotion(window, net_center, net_surround, device, max_y, max_x,threshold):
+    window = torch.from_numpy(window).unsqueeze(0).float().to(device)
+    center = net_center(window)
+    surround = net_surround(window)
+    center = torch.nn.functional.interpolate(center.unsqueeze(0), size=(max_y, max_x), mode='bilinear',
+                                             align_corners=False).squeeze(0)
+    surround = torch.nn.functional.interpolate(surround.unsqueeze(0), size=(max_y, max_x), mode='bilinear',
+                                             align_corners=False).squeeze(0)
+    events = center - surround
+    events = (events - events.min()) / (events.max() - events.min())
+    indexes = events > threshold
+    if indexes.any():
+        OMS = torch.zeros_like(events)
+        OMS[indexes] = 255
+    else:
+        OMS = torch.zeros_like(events)
+    return OMS, indexes
 
 
 def gaussian_kernel(size, sigma):
     # Create a grid of (x, y) coordinates using PyTorch
     x = torch.linspace(-size // 2, size // 2, size)
     y = torch.linspace(-size // 2, size // 2, size)
-    x, y = torch.meshgrid(x, y)
-
+    x, y = torch.meshgrid(x, y, indexing='ij')  # Ensure proper indexing for 2D arrays
     # Create a Gaussian kernel
-    kernel = torch.exp(-(x**2 + y**2) / (2 * sigma**2))
-    #kernel values between - 1 and 1
+    kernel = torch.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2))
+    # Normalize the kernel so that the values are between 0 and 1
     kernel = (kernel - kernel.min()) / (kernel.max() - kernel.min())
-    # kernel = kernel / torch.max(kernel)
-    # kernel = kernel * 2 - 1
     return kernel
 #
 # def plot_kernel(kernel,size):
