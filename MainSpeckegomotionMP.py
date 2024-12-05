@@ -68,6 +68,14 @@ def perform_attention_with_pan_tilt(
         if flags.halt.is_set():
             break
 
+        # horiz_fov = 90
+        # anglxpix_x = horiz_fov / resolution[0]
+        # vert_fov = 90
+        # anglypix_y = vert_fov / resolution[1]
+        #
+        # x_offset = resolution[0]/2
+        # y_offset = resolution[0]/2
+
         # cmds values are between -1 and 1
         cmd = run_controller(
                 np.array([salmap_coords[1]/(resolution[1]), salmap_coords[0]/(resolution[0])]),
@@ -76,7 +84,7 @@ def perform_attention_with_pan_tilt(
                 k_tilt=np.array([2., 0., 0.]),
             )
 
-        alpha = 10
+        alpha = 5
         pan_angle = (pr[0] + (cmd[0]*alpha + 1) * pan_norm).astype(np.int32)
         tilt_angle =(tr[0] + (cmd[1]*alpha + 1) * tilt_norm).astype(np.int32)
         #make a check if pan_angle and tilt_angle are within the range
