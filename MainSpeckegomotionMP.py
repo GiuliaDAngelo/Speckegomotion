@@ -49,7 +49,7 @@ fig, ax = plt.subplots(1,1, figsize=(12,8))
 
 
 def perform_attention_with_pan_tilt(
-    dummy_pan_tilt: bool = True,
+    dummy_pan_tilt: bool = False,
     showstats: bool = False,
     flags: Flags = None,
     suppression: np.ndarray = None,
@@ -68,28 +68,19 @@ def perform_attention_with_pan_tilt(
         if flags.halt.is_set():
             break
 
-        # horiz_fov = 90
-        # anglxpix_x = horiz_fov / resolution[0]
-        # vert_fov = 90
-        # anglypix_y = vert_fov / resolution[1]
-        #
-        # x_offset = resolution[0]/2
-        # y_offset = resolution[0]/2
-
         # cmds values are between -1 and 1
+        alpha=0.9
         cmd = run_controller(
-                np.array([salmap_coords[1]/(resolution[1]), salmap_coords[0]/(resolution[0])]),
-                np.array([0.5, 0.5]),
-                k_pan=np.array([2., 0., 0.]),
-                k_tilt=np.array([2., 0., 0.]),
+                np.array([salmap_coords[0], salmap_coords[1]]),
+                np.array([resolution[1] // 2, resolution[0] // 2]),
+                k_pan=np.array([(1.*alpha), 0., 0.]),
+                k_tilt=np.array([(1.*alpha), 0., 0.]),
             )
-
-        alpha = 5
-        pan_angle = (pr[0] + (cmd[0]*alpha + 1) * pan_norm).astype(np.int32)
-        tilt_angle =(tr[0] + (cmd[1]*alpha + 1) * tilt_norm).astype(np.int32)
+        delta_pan = int(2 * cmd[0] * pan_norm / resolution[0])
+        delta_tilt = - int(2 * cmd[1] * tilt_norm / resolution[1])
         #make a check if pan_angle and tilt_angle are within the range
-        pan_angle = np.clip(pan_angle, pan_range[0], pan_range[1])
-        tilt_angle = np.clip(tilt_angle, tilt_range[0], tilt_range[1])
+        pan_angle = np.clip(delta_pan, pan_range[0], pan_range[1]).astype(int)
+        tilt_angle = np.clip(delta_tilt, tilt_range[0], tilt_range[1]).astype(int)
 
         logger.info(f"Moving | cmd: ({cmd[0]:>0.3f},{cmd[1]:>0.3f}) | salmap coords:  {salmap_coords} | pan_angle: {pan_angle} / {pr} | tilt_angle {tilt_angle} / {tilt_range}")
 
@@ -98,9 +89,8 @@ def perform_attention_with_pan_tilt(
             time.sleep(0.5)
         else:
             with serial.Serial(serial_port, baud_rate, timeout=1) as ser:
-                pan_command = f'PP{pan_angle}\n'
-                tilt_command = f'TP{tilt_angle}\n'
-
+                pan_command = f'PO{pan_angle}\n'
+                tilt_command = f'TO{tilt_angle}\n'
                 # Send the pan and tilt commands
                 send_command(ser, f'PU\n')
                 send_command(ser, pan_command)
@@ -108,8 +98,7 @@ def perform_attention_with_pan_tilt(
                 send_command(ser, tilt_command)
                 send_command(ser, f'A\n')
                 response = ser.readline().decode('utf-8').strip()
-
-
+                time.sleep(0.1)
             if response:
                 print(f"Response from device: {response}")
 
@@ -197,6 +186,17 @@ if __name__ == "__main__":
         -907,
         604,
     ])  # Replace with actual tilt range of your device if different
+
+    with serial.Serial(serial_port, baud_rate, timeout=1) as ser:
+        pan_command = f'PP{0}\n'
+        tilt_command = f'TP{0}\n'
+        # Send the pan and tilt commands
+        send_command(ser, f'PU\n')
+        send_command(ser, pan_command)
+        send_command(ser, f'TU\n')
+        send_command(ser, tilt_command)
+        send_command(ser, f'A\n')
+        response = ser.readline().decode('utf-8').strip()
 
     ##### Speck initialisation for the sink #####
     # Set the Speck and sink events

@@ -16,6 +16,7 @@ class NengoController:
             target_pan=64,
             target_tilt=64,
             depth=0.0,
+            simulator_dt=0.01,
             ):
         self.k_pan = k_pan
         self.k_tilt = k_tilt
@@ -28,6 +29,7 @@ class NengoController:
 
         self.target_pan = target_pan # m
         self.target_tilt = target_tilt # m
+        self.simulator_dt = simulator_dt
         self.construct_network()
         pass
 
@@ -46,7 +48,7 @@ class NengoController:
             ## maximum, and maintain a fixed distance for depth.
 
             ## proportional error on tilt
-            tilt_err_prop = nengo.Ensemble(n_neurons=50, dimensions=1)
+            tilt_err_prop = nengo.Ensemble(n_neurons=50, dimensions=1, radius = 300)
             nengo.Connection(
                     tilt_target, 
                     tilt_err_prop,
@@ -63,7 +65,7 @@ class NengoController:
 
             ## The population should encode
             ## k_pan_prop * (pan - target_pan)
-            pan_err_prop = nengo.Ensemble(n_neurons=50, dimensions=1)
+            pan_err_prop = nengo.Ensemble(n_neurons=50, dimensions=1, radius = 300)
             nengo.Connection(
                     pan_target,
                     pan_err_prop,
@@ -79,11 +81,11 @@ class NengoController:
             self.p_pan = nengo.Probe(pan_err_prop)
         ## end with Model
 
-        self.sim = nengo.Simulator(self.model)
+        self.sim = nengo.Simulator(self.model, dt=self.simulator_dt)
 
 
 
-    def __call__(self, salmax_coords, depth, sim_run_time=5.):
+    def __call__(self, salmax_coords, depth, sim_run_time=1.):
         self.horiz_coordinate = salmax_coords[1]
         self.depth = depth
 
