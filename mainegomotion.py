@@ -30,8 +30,10 @@ if __name__ == '__main__':
     # loading egomotion kernel
     filter_egomotion = egokernel()
 
+    device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+    stride= 1
     # Initialize the network with the loaded filter
-    netegomotion = net_def(filter_egomotion,tau_mem, num_pyr, filter_egomotion.size(1))
+    netegomotion = net_def(filter_egomotion,tau_mem, num_pyr, filter_egomotion.size(1), device, stride)
 
     characterisationFLAG = True
 
@@ -45,7 +47,6 @@ if __name__ == '__main__':
 
         # Define motion parameters
         cnt=0
-        device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
         spikes = [[] for _ in range((max_x+1)*(max_y+1))]
         time = 0
         for frame in frames.numpy():

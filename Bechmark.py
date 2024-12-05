@@ -14,6 +14,7 @@ Steps:
 3. Run the spiking neural network on the data.
 4. Save the generated frames and create videos from the resulting maps.
 '''
+import matplotlib.pyplot as plt
 
 from egomotionlayer_functions import *
 
@@ -28,7 +29,7 @@ size_krn_surround = 8  # Size of the kernel (NxN) - 8
 sigma_surround = 4  # Sigma for the first Gaussian - 4
 
 
-tau_mem = 0.001
+tau_mem = 1#0.001
 threshold = 0.96
 num_pyr = 1
 
@@ -90,6 +91,17 @@ if __name__ == '__main__':
                 results_path = file_path.split('seq')[1]
                 print(file_path)
                 frames = np.load(file_path)
+                cnt = 1
+                for frame in frames:
+                    plt.clf()
+                    #normalize the frame
+                    frame = frame+frames[cnt]
+                    frame = (frame - frame.min()) / (frame.max() - frame.min()) * 255
+                    plt.imshow(frame[0], cmap='gray')
+                    plt.colorbar(shrink=0.3)
+                    plt.draw()
+                    plt.pause(0.001)
+                    cnt+=1
                 # shape of the frames
                 max_x = frames.shape[3]
                 max_y = frames.shape[2]

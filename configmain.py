@@ -3,9 +3,9 @@
 # respath = 'results/ego/'
 # respath = 'results/onlyobj/'
 
-respath = 'results/egoscaleexp/1/'
-name_exp = '1'#respath.split('/')[1]
-respath_to_file = '/Users/giuliadangelo/workspace/code/IEBCS/data/video/egoscaleexp/1/1.npy'
+respath = 'results/egoscaleexp/invertedspeeds/'
+name_exp = 'invertedspeeds'#respath.split('/')[1]
+respath_to_file = '/Users/giuliadangelo/workspace/code/IEBCS/data/video/egoscaleexp/invertedspeeds/invertedspeeds.npy'
 filePathOrName = respath_to_file
 
 
