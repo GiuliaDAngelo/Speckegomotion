@@ -99,6 +99,15 @@ def mkdirfold(path):
     else:
         print('Folder already exists')
 
+def getIOU(spike_pred, spike_gt):
+    spike_pred = spike_pred.cpu().numpy()
+    spike_gt = spike_gt.cpu().numpy()
+
+    intersection = np.sum(np.logical_and(spike_pred, spike_gt))
+    union = np.sum(np.logical_or(spike_pred, spike_gt))
+    return intersection / union
+
+
 
 # Load the .npz file
 evpath = '/Users/giuliadangelo/workspace/data/DATASETs/EVIMO/EVIMOevents/'
@@ -190,7 +199,7 @@ for dir in dirs:
 
         time = 0
         i = 0
-        fig, axs = plt.subplots(1, 3, figsize=(10, 5))
+        fig, axs = plt.subplots(1, 4, figsize=(10, 5))
         for evframe in evframes:
             print('frame: '+str(i)+' out of '+str(len(evframes)))
             time += time_wnd_frames
@@ -199,17 +208,64 @@ for dir in dirs:
                 axs[0].cla()
                 axs[1].cla()
                 axs[2].cla()
+                axs[3].cla()
 
                 evframe = evframe.numpy().astype(int)
                 evframe = (evframe - evframe.min()) / (evframe.max() - evframe.min()) * 255
 
-                axs[0].imshow(evframe[0])
-                axs[1].imshow(mask[i])
-                axs[2].imshow(OMS.squeeze(0).cpu().detach().numpy(), vmin=0, vmax=255)
+                # axs[0].imshow(evframe[0])
+                # axs[1].imshow(mask[i])
+                # axs[2].imshow(OMS.squeeze(0).cpu().detach().numpy(), vmin=0, vmax=255)
 
-                plt.imsave(evframeres+f'evframe_{i}.png', evframe[0])
-                plt.imsave(maskframeres+f'mask_{i}.png', mask[i])
-                plt.imsave(OMSframeres+f'OMS_{i}.png', OMS)
+                ###################################
+                ############ IoU ##################
+                ###################################
+
+                spk_mask = torch.tensor(mask[i] != 0.00, dtype=torch.bool)
+                spk_evframe = torch.tensor(evframe[0] != 0.00, dtype=torch.bool)
+
+                spike_gt = torch.zeros_like(spk_mask)
+                torch.logical_and(spk_mask, spk_evframe, out=spike_gt)
+
+                ##### checking if both spk_evframe and spk_gt have events, therefore there are objects in the scene
+                #each element is set to 1 if the sum of the corresponding elements in spk_evframe and spike_gt is greater than 1
+                masked_spike_tensor = ((spk_evframe.float() + spike_gt.float()) > 1).float()
+
+                ##### checking if there are background spikes
+                #background_spikes where each element is True if the sum of the corresponding elements in spk_evframe and the negation of masked_spike_tensor is greater than 1, and False otherwise
+                background_spikes = ((spk_evframe.float() + torch.logical_not(masked_spike_tensor).float()) > 1).float()
+
+                # # ratio might be 4 or 5 (higher the worse), if bigger that then I should not compute it
+                maxBackgroundRat = 3.5
+
+                if torch.sum(background_spikes) / torch.sum(masked_spike_tensor) > maxBackgroundRat:
+                    axs[0].imshow(evframe[0])
+                    axs[1].imshow(masked_spike_tensor.cpu().detach().numpy())
+                    axs[2].imshow(OMS.squeeze(0).cpu().detach().numpy(), vmin=0, vmax=255)
+                    dummy = torch.zeros_like(spk_mask)
+                    axs[3].imshow(dummy.cpu().detach().numpy())
+
+                else:
+                    axs[0].imshow(evframe[0])
+                    axs[1].imshow(masked_spike_tensor.cpu().detach().numpy())
+                    axs[2].imshow(OMS.squeeze(0).cpu().detach().numpy(), vmin=0, vmax=255)
+                    axs[3].imshow(background_spikes.cpu().detach().numpy())
+
+
+                    # create a new mask the original event with the OMS
+                    spike_pred = torch.zeros_like(OMS[0]).to(device)
+                    spk_oms = torch.tensor(OMS[0] != 0.00, dtype=torch.bool).to(device)
+                    torch.logical_and(spk_oms, spk_evframe.to(device), out=spike_pred)
+
+                    #### check why the IOU IS NOT WORKING AND IS SOO SMALL ####
+
+                    IOUframe = getIOU(spike_pred, spike_gt)
+                    print('IOU: '+str(IOUframe))
+
+
+                # plt.imsave(evframeres+f'evframe_{i}.png', evframe[0])
+                # plt.imsave(maskframeres+f'mask_{i}.png', mask[i])
+                # plt.imsave(OMSframeres+f'OMS_{i}.png', OMS)
 
                 plt.draw()
                 plt.pause(0.001)
