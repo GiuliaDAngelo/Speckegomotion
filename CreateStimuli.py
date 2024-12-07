@@ -21,8 +21,6 @@ import numpy as np
 
 
 
-
-
 # Create a window with larger dimensions to ensure stimuli fit
 square = [350, 350]  # Window size
 one_grat = False
