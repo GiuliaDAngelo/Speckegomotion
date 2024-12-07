@@ -1,24 +1,33 @@
 from psychopy import visual, core, event  # import some libraries from PsychoPy
 import cv2
 import numpy as np
+import os
+
+def createfld(respath, namefld):
+    # Check if the folder exists, and create it if it doesn't
+    if not os.path.exists(respath+namefld):
+        os.makedirs(respath+namefld)
+        print('Folder created')
+    else:
+        print('Folder already exists')
 
 
 # # Paths
-# # exp =  'objego'
-# # exp =  'ego1'
-# # exp =  'ego3'
-# # exp =  'ego4'
-# # exp =  'ego5'
-# # exp =  'ego8'
-# # exp =  'onlyobj'
-# # exp = '1'
-# # exp = '02'
-# # exp = '4'
-# exp = 'invertedspeeds'
-#
-#
-# respath = 'results/'+exp+'/'
+# exp =  'objego'
+# exp =  'ego1'
+# exp =  'ego3'
+# exp =  'ego4'
+# exp =  'ego5'
+# exp =  'ego8'
+# exp =  'onlyobj'
+# exp = '1'
+# exp = '02'
+# exp = '4'
+exp = 'invertedspeeds'
 
+
+respath = 'data/stimuli/'+exp+'/'
+createfld(respath)
 
 
 # Create a window with larger dimensions to ensure stimuli fit
