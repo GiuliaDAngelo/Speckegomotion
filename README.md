@@ -1,8 +1,9 @@
 # Egomotion Suppression for Event-Based Cameras
 
-**Contributors**:  
-- Giulia D'Angelo  
-- Alexander Hadijanov
+**Contributors**:
+- Giulia D'Angelo
+- Alexander Hadjiivanov
+
 
 
 ![pipeline](https://github.com/GiuliaDAngelo/Speckegomotion/blob/main/images/egomotion.png)
@@ -10,8 +11,8 @@
 
 ## Overview
 
-Egomotion refers to the movement of a camera relative to its environment. 
-In the context of event-based cameras, which capture changes in pixel intensity rather than full frames, egomotion introduces significant noise. 
+Egomotion refers to the movement of a camera relative to its environment.
+In the context of event-based cameras, which capture changes in pixel intensity rather than full frames, egomotion introduces significant noise.
 This noise can obscure the detection of relevant motion signals in the scene, such as moving objects, making it difficult to differentiate between background motion caused by the camera's movement and dynamic objects of interest.
 
 ### The Challenge of Egomotion Suppression
