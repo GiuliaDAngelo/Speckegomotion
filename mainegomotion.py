@@ -31,30 +31,32 @@ num_pyr = 1
 
 # Parameters events
 polarity = True
-FPSvideo = 60.0  # Frames per second
-dur_video = 4  # Duration of video in seconds
+FPSvideo = 60.0  # Frames per second # Duration of video in seconds
 tsFLAG = False  # Flag to convert timestamps to microseconds
 
 # Flags
 show_egomap = True
-save_res = False
+save_res = True
 
 # Paths
-# exp =  'objego'
-# exp =  'ego1'
-# exp =  'ego3'
-# exp =  'ego4'
-# exp =  'ego5'
-# exp =  'ego8'
+exp =  'objego'
+# exp =  'ego'
 # exp =  'onlyobj'
-# exp = '1'
-# exp = '02'
-# exp = '4'
-exp = 'invertedspeeds'
+
+#Parameters stimuli
+sf = 3  # spatial frequency [0.2, 1, 4]
+sf_small = 4
+speed = 0.01 # speed in cycles per frame
+small_speed = 0.09
+duration = 2  # duration in seconds
 
 
-respath = 'results/'+exp+'/'
-evpath = '/Users/giuliadangelo/workspace/code/IEBCS/data/video/egomotionstimuli/'+exp+'/'+exp+'.npy'
+name_exp = exp+'sf'+str(sf)+'sp'+str(speed)+'sf'+str(sf_small)+'sp'+str(small_speed)
+name_exp = name_exp.replace(".", "")
+
+respath = 'results/'+name_exp+'/'
+evdata_path = 'ev_100_10_100_300_0.3_0.01.dat'
+evpath = '/Users/giuliadangelo/workspace/code/IEBCS/data/video/stimuli/'+name_exp+'/'+name_exp+evdata_path+'.npy'
 
 
 device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
@@ -67,9 +69,9 @@ if __name__ == '__main__':
 
     # Load events
     time_wnd_frames = 1000 #1Khz as IEBCS
-    [frames, max_y, max_x] = load_eventsnpy(polarity, dur_video, FPSvideo, evpath, tsFLAG, time_wnd_frames)
+    [frames, max_y, max_x] = load_eventsnpy(polarity, duration, FPSvideo, evpath, tsFLAG, time_wnd_frames)
     len_fr = len(frames)
-    time_wnd_frames = dur_video/len_fr
+    time_wnd_frames = duration/len_fr
     tau_mem = time_wnd_frames
 
     #define network
