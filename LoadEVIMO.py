@@ -82,7 +82,7 @@ def gaussian_kernel(size, sigma):
 def net_def(filter, tau_mem, num_pyr, size_krn, device, stride):
     # define our single layer network and load the filters
     net = nn.Sequential(
-        nn.Conv2d(1, num_pyr, (size_krn,size_krn), stride=stride, bias=False),
+        nn.Conv2d(1, num_pyr, (size_krn,size_krn), padding = 'same', stride=stride, bias=False),
         sl.LIF(tau_mem),
     )
     net[0].weight.data = filter.unsqueeze(1).to(device)
@@ -94,10 +94,10 @@ def egomotion(window, net_center, net_surround, device, max_y, max_x,threshold):
     window = window.unsqueeze(0).float().to(device)
     center = net_center(window)
     surround = net_surround(window)
-    center = torch.nn.functional.interpolate(center.unsqueeze(0), size=(max_y, max_x), mode='bilinear',
-                                             align_corners=False).squeeze(0)
-    surround = torch.nn.functional.interpolate(surround.unsqueeze(0), size=(max_y, max_x), mode='bilinear',
-                                             align_corners=False).squeeze(0)
+    # center = torch.nn.functional.interpolate(center.unsqueeze(0), size=(max_y, max_x), mode='bilinear',
+    #                                          align_corners=False).squeeze(0)
+    # surround = torch.nn.functional.interpolate(surround.unsqueeze(0), size=(max_y, max_x), mode='bilinear',
+    #                                          align_corners=False).squeeze(0)
 
     events = center - surround
     events = 1 - (events - events.min())/(events.max() - events.min())
@@ -168,7 +168,7 @@ eventsFLAG = False
 tau_mem = 0.02 #(events 0.03)
 threshold = 0.80 #(events 0.60)
 num_pyr = 1
-maxBackgroundRatio = 2
+maxBackgroundRatio = 3.5
 
 if eventsFLAG:
     for dir in dirs_events:
@@ -191,6 +191,7 @@ if eventsFLAG:
             evframeres = evfrpath + res_path
             maskframeres = maskfrpath + res_path
             OMSframeres = OMSpath + res_path
+
             mkdirfold(evframeres)
             mkdirfold(maskframeres)
             mkdirfold(OMSframeres)
@@ -254,29 +255,20 @@ if eventsFLAG:
                         IOUs.append(IOUframe)
                         print('IoU: ' + str(IOUframe))
 
-                        plt.imsave(evframeres+f'evframe_{i}.png', evframe[0])
-                        plt.imsave(maskframeres+f'mask_{i}.png', mask[i])
-                        plt.imsave(OMSframeres+f'OMS_{i}.png', OMS[0].cpu().numpy())
+                        indexes_gt = evmaskdata[i] != 0
+                        ground_truth = np.zeros_like(evmaskdata[i], dtype=evframe[0].dtype)
+                        ground_truth[indexes_gt] = evframe[0][indexes_gt]
 
-                    ###################################
-                    ############ Plot ##################
-                    ###################################
+                        axs[0].imshow(evframe[0])
+                        axs[1].imshow(ground_truth)
+                        axs[2].imshow(spike_gt.cpu().numpy())
 
-                    axs[0].cla()
-                    axs[1].cla()
-                    axs[2].cla()
-
-                    evframe = evframe[0]
-                    evframe = (evframe - evframe.min()) / (evframe.max() - evframe.min()) * 255
-
-                    axs[0].imshow(evframe)
-                    axs[1].imshow(mask[i])
-                    axs[2].imshow(OMS.squeeze(0).cpu().detach().numpy(), vmin=0, vmax=255)
-
-                    plt.draw()
-                    plt.pause(0.001)
-                    # print('frame: ' + str(i) + ' out of ' + str(len(timestamps)))
-
+                        plt.imsave(evframeres + f'evframe_{i}.png', evframe[0], cmap='gray')
+                        plt.imsave(maskframeres + f'mask_{i}.png', spike_gt.cpu().numpy(), cmap='gray')
+                        plt.imsave(OMSframeres + f'OMS_{i}.png', spike_pred.cpu().numpy(), cmap='gray')
+                        plt.draw()
+                        plt.pause(0.001)
+                        # print('frame: ' + str(i) + ' out of ' + str(len(timestamps)))
                     i += 1
                 time += time_wnd_frames
             print('IOU: ' + str(np.mean(IOUs)))
@@ -287,6 +279,8 @@ if eventsFLAG:
 
 else:
     for dir in dirs:
+        if dir=='wall' or dir=='tabletop' or dir=='fast' or dir=='box' or dir=='table':
+            continue
         # look at files in the dir
         files = [f for f in os.listdir(evfrpath + dir) if f.endswith('.npy')]
         # sort list of files
@@ -294,6 +288,16 @@ else:
         for file in files:
             seq_name = file.split('_')[0]+'_'+file.split('_')[1]
             maskfile = seq_name + '_masks.npy'
+            res_path = dir + '/' + seq_name + '/'
+
+            print(res_path)
+            evframeres = evfrpath + res_path
+            maskframeres = maskfrpath + res_path
+            OMSframeres = OMSpath + res_path
+
+            mkdirfold(evframeres)
+            mkdirfold(maskframeres)
+            mkdirfold(OMSframeres)
 
             evframesdata = np.load(evfrpath + dir + '/' + file, allow_pickle=True)
             evmaskdata = np.load(maskpath + dir + '/' + maskfile, allow_pickle=True)
@@ -314,7 +318,7 @@ else:
             # savekernel((center-surround), size_krn_surround, 'OMSkernel')
 
             ss = 1
-            sc = ss + sigma_surround - sigma_center
+            sc = 1 #original code ss + sigma_surround - sigma_center
 
             # Initialize the network with the loaded filter
             # define our single layer network and load the filters
@@ -327,13 +331,13 @@ else:
             ###### ###### ###### ###### ###### ######
 
             i = 0
-            fig, axs = plt.subplots(1, 2, figsize=(10, 5))
+            # fig, axs = plt.subplots(1, 3, figsize=(10, 5))
             IOUs = []
             max_x = evframesdata[0].shape[2]
             max_y = evframesdata[0].shape[1]
             for evframe in evframesdata:
+                print(str(i)+' out of: '+str(len(evframesdata)))
                 OMS, indexes = egomotion(torch.tensor(evframe[0]), net_center, net_surround, device, max_y, max_x, threshold)
-
                 ###################################
                 ############ IoU ##################
                 ###################################
@@ -351,50 +355,43 @@ else:
 
                 num_evs_mask = torch.sum(spk_mask).item()
                 num_evs_back = torch.sum(spk_evframe).item() - num_evs_mask
-                ratio = num_evs_back / num_evs_mask
+                try:
+                    ratio = num_evs_back / num_evs_mask
+                except ZeroDivisionError:
+                    ratio = float('inf')  # or any other value that makes sense in your context
 
                 # print(num_evs_back / num_evs_mask)
                 if ratio < maxBackgroundRatio:
                     IOUframe = getIOU(spike_pred, spike_gt)
                     IOUs.append(IOUframe)
                     print('IoU: ' + str(IOUframe))
-                    plt.imsave(OMSframeres + f'OMS_{i}.png', OMS[0].cpu().numpy())
 
-                    axs[0].cla()
-                    axs[1].cla()
+                    ###################################
+                    ############ Plot #################
+                    ###################################
 
-                    axs[0].imshow(spike_pred.cpu().numpy())
-                    axs[1].imshow(spike_gt.cpu().numpy())
+                    # axs[0].cla()
+                    # axs[1].cla()
+                    # axs[2].cla()
 
-                ###################################
-                ############ Plot #################
-                # ###################################
-                # axs[0].cla()
-                # axs[1].cla()
-                # axs[2].cla()
-                #
-                # evframe = evframe[0].astype(int)
-                # evframe = (evframe - evframe.min()) / (evframe.max() - evframe.min()) * 255
-                #
-                # axs[0].imshow(evframe)
-                # axs[1].imshow(spike_gt.cpu().detach().numpy(), vmin=0, vmax=1)
-                # axs[2].imshow(OMS.squeeze(0).cpu().detach().numpy(), vmin=0, vmax=255)
+                    indexes_gt = evmaskdata[i] != 0
+                    ground_truth = np.zeros_like(evmaskdata[i], dtype=evframe[0].dtype)
+                    ground_truth[indexes_gt] = evframe[0][indexes_gt]
 
-                # axs[0].imshow(evframe[0])
-                # axs[1].imshow(masked_spike_tensor.cpu().detach().numpy())
-                # axs[2].imshow(OMS.squeeze(0).cpu().detach().numpy(), vmin=0, vmax=255)
-                # axs[3].imshow(background_spikes.cpu().detach().numpy())
+                    # axs[0].imshow(evframe[0])
+                    # axs[1].imshow(ground_truth)
+                    # axs[2].imshow(spike_gt.cpu().numpy())
 
-                plt.draw()
-                plt.pause(0.001)
-                # print('frame: ' + str(i) + ' out of ' + str(len(evframesdata)))
-
+                    plt.imsave(evframeres + f'evframe_{i}.png', evframe[0], cmap='gray')
+                    plt.imsave(maskframeres + f'mask_{i}.png', spike_gt.cpu().numpy(),cmap='gray')
+                    plt.imsave(OMSframeres + f'OMS_{i}.png', spike_pred.cpu().numpy(), cmap='gray')
+                # plt.draw()
+                # plt.pause(0.001)
                 i += 1
-        print('IOU: ' + str(np.mean(IOUs)))
-        with open(OMSpath + dir + '/' + seq_name + 'IOUs.pkl', 'wb') as f:
-            pickle.dump(IOUs, f)
-        with open(OMSpath + dir + '/' + seq_name + 'meanIOUs.pkl', 'wb') as f:
-            pickle.dump(IOUs, f)
+            with open(OMSpath + dir + '/' + seq_name + 'IOUs.pkl', 'wb') as f:
+                pickle.dump(IOUs, f)
+            with open(OMSpath + dir + '/' + seq_name + 'meanIOUs.pkl', 'wb') as f:
+                pickle.dump(IOUs, f)
 
 
 
