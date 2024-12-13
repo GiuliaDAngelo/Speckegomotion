@@ -18,4 +18,4 @@ def run_controller(salmax_coords, target_coords, k_pan, k_tilt):
         )
     ### end if
     return (salmax_coords - target_coords)
-        # _nengo_controller_obj(salmax_coords, target_coords))
+        # _nengo_controller_obj(salmax_coords))
