@@ -11,6 +11,7 @@ import time
 import random
 
 # --------------------------------------
+from egomotion import conf
 from egomotion.conf import logger
 
 
@@ -31,7 +32,6 @@ class PTU:
         pan_range: np.ndarray = None,
         tilt_range: np.ndarray = None,
         timeout: int = 1,
-        verbose: bool = True,
     ):
 
         # Serial port
@@ -43,9 +43,6 @@ class PTU:
         # Connection timeout
         self.timeout = timeout
 
-        # Extra logging
-        self.verbose = verbose
-
         # Replace with actual pan range of your device if different
         if pan_range is None:
             pan_range = [-3090, 3090]
@@ -55,7 +52,8 @@ class PTU:
             tilt_range = [-907, 604]
         self.tilt_range = np.array(tilt_range, dtype=np.int32)
 
-        self.serial = serial.Serial(self.port, self.rate, self.timeout)
+        # Connect to the unit via a serial port
+        self.serial = None if conf.DUMMY else serial.Serial(self.port, self.rate, self.timeout)
 
     # Function to send a command to the serial device
     def send_command(
@@ -121,9 +119,8 @@ class PTU:
 
                 response = self.move(pan_angle, tilt_angle)
 
-                if response and self.verbose:
-                    # Read and print any response from the device after each command
-                    logger.debug(f"PTU '{self.port}' | Response: {response}")
+                # Read and print any response from the device after each command
+                logger.debug(f"PTU '{self.port}' | Response: {response}")
 
                 # Delay between movements
                 time.sleep(rest)
@@ -154,22 +151,26 @@ class PTU:
                 The response from the unit.
         """
 
-        if self.verbose:
-            logger.debug(
-                f"PTU '{self.port}' | Pan angle: '{pan_angle}' | Tilt angle: {tilt_angle}"
-            )
+        logger.debug(
+            f"PTU '{self.port}' | Pan angle: '{pan_angle}' | Tilt angle: {tilt_angle}"
+        )
 
-        pan_command = f"PP{pan_angle}\n"
-        tilt_command = f"TP{tilt_angle}\n"
+        if conf.DUMMY:
+            time.sleep(np.random.uniform(0.5,1.0))
+            return "[ PTU ] Dummy response"
 
-        # Send the pan and tilt commands
-        self.send_command(f"PU\n")
-        self.send_command(pan_command)
-        self.send_command(f"TU\n")
-        self.send_command(tilt_command)
-        self.send_command(f"A\n")
+        else:
+            pan_command = f"PP{pan_angle}\n"
+            tilt_command = f"TP{tilt_angle}\n"
 
-        return self.serial.readline().decode("utf-8").strip()
+            # Send the pan and tilt commands
+            self.send_command(f"PU\n")
+            self.send_command(pan_command)
+            self.send_command(f"TU\n")
+            self.send_command(tilt_command)
+            self.send_command(f"A\n")
+
+            return self.serial.readline().decode("utf-8").strip()
 
     def reset(self):
         """

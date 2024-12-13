@@ -115,7 +115,7 @@ def plot_kernel(
     ax = fig.add_subplot(111, projection="3d")
     x = torch.linspace(-kernel.shape[0] // 2, kernel.shape[0] // 2, kernel.shape[0])
     y = torch.linspace(-kernel.shape[1] // 2, kernel.shape[1] // 2, kernel.shape[1])
-    x, y = torch.meshgrid(x, y)
+    x, y = torch.meshgrid(x, y, indexing="ij")
     ax.plot_surface(x.numpy(), y.numpy(), kernel.numpy(), cmap="jet")
     plt.show()
 

@@ -29,20 +29,27 @@ class AttentionNet:
         # to these kernels, the response will have the same
         # shape as the input and the latter won't have to be
         # rescaled downstream.
-        # The same goes for the attention layer.
         # ==================================================
         self.center = nn.Conv2d(
-            1,
-            num_pyr,
-            (conf.k_size, conf.k_size),
+            in_channels=1,
+            out_channels=num_pyr,
+            kernel_size=(
+                conf.k_center_size,
+                conf.k_center_size,
+            ),
             stride=1,
+            padding="same",
             bias=False,
         )
         self.surround = nn.Conv2d(
-            1,
-            num_pyr,
-            (conf.k_size, conf.k_size),
+            in_channels=1,
+            out_channels=num_pyr,
+            kernel_size=(
+                conf.k_surround_size,
+                conf.k_surround_size,
+            ),
             stride=1,
+            padding="same",
             bias=False,
         )
 
@@ -56,10 +63,12 @@ class AttentionNet:
         # Attention
         # ==================================================
         self.attention = nn.Conv2d(
-            1,
-            attention_filter.shape[1],
-            attention_filter.shape[2],
+            in_channels=num_pyr,
+            # REVIEW: The original didn't have output channels
+            out_channels=1,
+            kernel_size=(attention_filter.shape[1], attention_filter.shape[2]),
             stride=1,
+            padding="same",
             bias=False,
         )
 
@@ -75,11 +84,6 @@ class AttentionNet:
         self.attention.to(conf.device)
         self.egomotion_lif.to(conf.device)
         self.attention_lif.to(conf.device)
-
-        self.suppression = torch.zeros(
-            (1, conf.vis_max_y, conf.vis_max_x),
-            device=conf.device,
-        )
 
     def compute_egomotion(
         self,

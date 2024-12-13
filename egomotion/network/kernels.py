@@ -43,11 +43,12 @@ def gaussian(
     """
     x = torch.linspace(-size // 2, size // 2, size)
     y = torch.linspace(-size // 2, size // 2, size)
-    x, y = torch.meshgrid(x, y)
+    x, y = torch.meshgrid(x, y, indexing='ij')
 
     # Create a Gaussian kernel
     kernel = torch.exp(-(x**2 + y**2) / (2 * sigma**2))
 
+    # Gaussian normalisation
     if norm:
         kernel /= 2 * np.pi * sigma**2
 
@@ -145,7 +146,7 @@ def make_vm_filters(
         filter = rescale(filter, conf.vm_fltr_resize_perc, anti_aliasing=False)
         filters.append(filter)
     filters = torch.tensor(np.stack(filters).astype(np.float32))
-    return filters
+    return filters.unsqueeze(0)
 
 
 def load_kernels(path: Path | str) -> torch.Tensor:

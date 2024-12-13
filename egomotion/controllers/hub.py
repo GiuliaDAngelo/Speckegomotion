@@ -41,58 +41,49 @@ class Hub:
 
     def __init__(
         self,
-        center_kernel: torch.Tensor,
-        surround_kernel: torch.Tensor,
-        attention_kernel: torch.Tensor,
+        net: AttentionNet,
+        ptu: PTU,
+        speck: SpeckDevice,
+        controller: NengoController,
         alpha: float = 0.9,
         stats: bool = True,
-        verbose: bool = True,
     ):
-
-        # Extra logging
-        self.verbose = verbose
 
         self.flags = Flags()
 
         # REVIEW: What is this?
         self.alpha = alpha
 
+        # Event frame
+        self.ev_frame = np.zeros(conf.sensor_size, dtype=np.ubyte)
+
+        # Suppression map
+        self.suppression_map = np.zeros_like(self.ev_frame)
+
+        # Saliency map coordinates
+        self.saliency_map = np.zeros_like(self.ev_frame)
+        self.saliency_map_coords = np.array([0, 0])
+
         # Egomotion and attention
         # ==================================================
-        self.net = AttentionNet(
-            center_kernel,
-            surround_kernel,
-            attention_kernel,
-            conf.tau_mem,
-            conf.vm_num_pyr,
-        )
+        self.net = net
+
+        # Pan/tilt unit (PTU)
+        # ==================================================
+        self.ptu = ptu
+        self.ptu.reset()
+        self.ptu_thread = threading.Thread(target=self.follow_with_attention)
+        self.ptu_thread.daemon = True
 
         # Nengo controller for the PTU
         # REVIEW: Check if the controller is instantiated
         # with the right arguments.
         # ==================================================
-        self.controller = NengoController(
-            np.array([self.salmap_coords[0], self.salmap_coords[1]]),
-            np.array([conf.vis_resolution[1] // 2, conf.vis_resolution[0] // 2]),
-            k_pan=np.array([self.alpha, 0.0, 0.0]),
-            k_tilt=np.array([self.alpha, 0.0, 0.0]),
-        )
-
-        # Pan/tilt unit (PTU)
-        # ==================================================
-        self.ptu = PTU()
-        self.ptu.reset()
-        self.ptu_thread = threading.Thread(target=self.follow_with_attention)
-        self.ptu_thread.daemon = True
-        self.ptu_thread.start()
+        self.controller = controller
 
         # Speck camera
         # ==================================================
-        self.speck = SpeckDevice()
-
-        # Saliency map coordinates
-        self.salmap = None
-        self.salmap_coords = np.array([0, 0])
+        self.speck = speck
 
         if stats:
             num_eve = []
@@ -109,8 +100,7 @@ class Hub:
 
         while not self.flags.halt.is_set():
 
-            if self.verbose:
-                logger.info("PTU waiting for attention trigger...")
+            logger.debug("PTU waiting for attention trigger...")
 
             self.flags.attention.wait()
 
@@ -126,10 +116,10 @@ class Hub:
             #     k_pan=np.array([self.alpha, 0.0, 0.0]),
             #     k_tilt=np.array([self.alpha, 0.0, 0.0]),
             # )
-            cmd = self.controller(self.salmap_coords)
+            cmd = self.controller(self.saliency_map_coords)
 
-            delta_pan = int(2 * cmd[0] * pan_norm / conf.vis_resolution[0])
-            delta_tilt = -int(2 * cmd[1] * tilt_norm / conf.vis_resolution[1])
+            delta_pan = int(2 * cmd[0] * pan_norm / conf.sensor_size[0])
+            delta_tilt = -int(2 * cmd[1] * tilt_norm / conf.sensor_size[1])
 
             # make a check if pan_angle and tilt_angle are within the range
             pan_angle = np.clip(
@@ -145,19 +135,18 @@ class Hub:
             ).astype(np.int32)
 
             # Dummy pan & tilt
-            if conf.dummy:
+            if conf.DUMMY:
                 time.sleep(np.random.uniform(0.1, 0.5))
             else:
                 response = self.ptu.move(pan_angle, tilt_angle)
-                if self.verbose:
-                    logger.debug(f"Hub | Response: {response}")
+                logger.debug(f"Hub | Response: {response}")
 
-            if self.verbose:
-                logger.info("Hub | Movement complete")
+            logger.debug("Hub | Movement complete")
             self.flags.attention.clear()
 
     def run(self):
 
+        self.ptu_thread.start()
         self.flags.attention.set()
         while not self.flags.halt.is_set():
 
@@ -174,18 +163,16 @@ class Hub:
                     # logger.info("Accumulating events...")
                     # time.sleep(random.gauss(1, 0.05))
 
-                    events = self.speck.get_events(1000)  # us
+                    (events, self.frame) = self.speck.get_events(1000)  # us
 
                     if events:
 
                         # logger.info("Computing egomotion")
                         # time.sleep(random.gauss(1, 0.05))
-                        suppression, indices = self.compute_egomotion(self.speck.frame)
+                        self.compute_egomotion()
 
                         # logger.info("Computing attention")
-                        self.salmap, self.salmap_coords[:] = self.compute_attention(
-                            suppression
-                        )
+                        self.compute_attention()
 
                         # Visualise the events and the saliency map.
                         self.show_events()
@@ -206,61 +193,52 @@ class Hub:
 
     def show_events(self):
         """
-        Visualise the events.
+        Visualise the event frame, the suppression map and the saliency map.
         """
 
-        cv.imshow("Events", self.speck.frame)
+        cv.imshow("Events", self.ev_frame)
         cv.imshow(
-            "Events after Suppression",
-            self.suppression[0].detach().cpu().numpy(),
+            "Events after suppression",
+            self.suppression_map[0],
         )
         cv.circle(
-            self.salmap,
-            (self.salmap_coords[1], self.salmap_coords[0]),
+            self.saliency_map,
+            (self.saliency_map_coords[1], self.saliency_map_coords[0]),
             5,
             (255, 255, 255),
             -1,
         )
         cv.imshow(
             "Saliency Map",
-            cv.applyColorMap(cv.convertScaleAbs(self.salmap), cv.COLORMAP_JET),
+            cv.applyColorMap(cv.convertScaleAbs(self.saliency_map), cv.COLORMAP_JET),
         )
         cv.waitKey(1)
 
-    def compute_egomotion(
-        self,
-        frame: np.ndarray,
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def compute_egomotion(self):
         """
         Extract an egomotion suppression map from an event frame.
-
-        Args:
-            frame (np.ndarray):
-                The current event frame.
-
-        Returns:
-            tuple[np.ndarray, np.ndarray]:
-                A tuple containing:
-                    - The reduced map.
-                    - The indices of pixels where the intensity is over the threshold.
         """
 
         # Turn the window into a tensor
-        frame = torch.from_numpy(frame).unsqueeze(0).float().to(conf.device)
+        torch_frame = torch.from_numpy(self.frame).unsqueeze(0).float().to(conf.device)
 
         # Compute the egomap
-        egomap = self.net.compute_egomotion(frame)
+        with torch.no_grad():
+            egomap = self.net.compute_egomotion(torch_frame)
 
         # Resize the egomap to match the resolution of the input
         # REVIEW This might be the source of the slightly
         # lower performance in terms of IoU
         # ==================================================
-        egomap = torch.nn.functional.interpolate(
-            egomap.unsqueeze(0),
-            size=(conf.vis_max_y, conf.vis_max_x),
-            mode="bilinear",
-            align_corners=False,
-        ).squeeze(0)
+        # egomap = torch.nn.functional.interpolate(
+        #     egomap.unsqueeze(0),
+        #     size=(conf.vis_max_y, conf.vis_max_x),
+        #     mode="bilinear",
+        #     align_corners=False,
+        # ).squeeze()
+
+        # Convert the egomap to a NumPy array
+        egomap = egomap.squeeze().detach().numpy()
 
         # frame, egomap between 0 and 255
         # egomap = 255 * (egomap - egomap.min()) / (egomap.max() - egomap.min())
@@ -272,77 +250,88 @@ class Hub:
             egomap, in_range="image", out_range=np.uint8
         )
         frame = ski.exposure.rescale_intensity(
-            frame, in_range="image", out_range=np.uint8
+            self.frame, in_range="image", out_range=np.uint8
         )
 
         # suppression = torch.zeros((1, conf.max_y, conf.max_x), device=conf.device)
 
         # Find where the egomap is over the threashold suppression max = frame
-        indexes = egomap >= conf.threshold
-        # REVIEW: There is no need for the frame variable at all
+        indices = egomap >= conf.threshold
+
+        # REVIEW: There is no need for the extra frame variable at all
         # suppression[indexes] = frame[indexes]
-        # suppression = np.ones_like(frame)[indexes]
-        suppression = np.ones_like(frame)[indexes]
+        self.suppression_map = np.zeros_like(egomap)
+        self.suppression_map[indices] = 1
 
-        return suppression, indexes
-
-    def compute_attention(
-        self,
-        window: np.ndarray,
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def compute_attention(self):
         """
-        Perform attention over a reduced map as computed
+        Perform attention over a suppression map as computed
         by the egomotion process.
-
-        Args:
-            window (np.ndarray):
-                The reduced window.
-
-        Returns:
-            tuple[np.ndarray, np.ndarray]:
-                A tuple containing:
-                    - The saliency map.
-                    - The coordinates of the most salient feature.
         """
 
         # Create resized versions of the frames
+
         resized_frames = [
             torchvision.transforms.Resize(
-                (int(window.shape[2] / pyr), int(window.shape[1] / pyr))
-            )(torch.from_numpy(window))
-            for pyr in range(1, conf.vm_num_pyr + 1)
+                # (int(suppression_map.shape[2] / pyr), int(suppression_map.shape[1] / pyr))
+                (
+                    # REVIEW: The original gave the wrong scaling
+                    # It should be a power of 2 (so 2 ** pyr), but it was just `pyr`.
+                    self.suppression_map.shape[0] // (2**pyr),
+                    self.suppression_map.shape[1] // (2**pyr),
+                )
+            )(torch.from_numpy(self.suppression_map).unsqueeze(0))
+            for pyr in range(conf.vm_num_pyr)
         ]
 
         # Process frames in batches
-
-        batch_frames = torch.stack(
+        # REVIEW: Should be vstack as stack gives an unsqueezed tensor.
+        batch_frames = torch.vstack(
             [
-                torchvision.transforms.Resize((conf.vis_resolution[0], conf.vis_resolution[1]))(
-                    frame
-                )
+                torchvision.transforms.Resize(
+                    (conf.sensor_size[0], conf.sensor_size[1])
+                )(frame)
                 for frame in resized_frames
             ]
         ).type(torch.float32)
-        batch_frames = batch_frames.to(conf.device)  # Move to GPU if available
-        output_rot = self.net.compute_attention(batch_frames)
+
+        with torch.no_grad():
+            batch_frames = batch_frames.to(conf.device)  # Move to GPU if available
+            attention_response = self.net.compute_attention(batch_frames)
 
         # Sum the outputs over rotations and scales
-        salmap = (
-            torch.sum(torch.sum(output_rot, dim=1, keepdim=True), dim=0, keepdim=True)
-            .squeeze()
-            .type(torch.float32)
+        saliency_map = (
+            (
+                torch.sum(
+                    torch.sum(attention_response, dim=1, keepdim=True),
+                    dim=0,
+                    keepdim=True,
+                )
+                .squeeze()
+                .type(torch.float32)
+            )
+            .detach()
+            .numpy()
         )
-        salmax_coords = np.unravel_index(
-            torch.argmax(salmap).cpu().numpy(), salmap.shape
+        saliency_map_coords = np.unravel_index(
+            np.argmax(saliency_map), saliency_map.shape
         )
 
         # normalise salmap for visualization
-        salmap = salmap.detach().cpu()
-        salmap = np.array((salmap - salmap.min()) / (salmap.max() - salmap.min()) * 255)
+        # saliency_map = np.array(
+        #     (saliency_map - saliency_map.min())
+        #     / (saliency_map.max() - saliency_map.min())
+        #     * 255
+        # )
+        saliency_map = ski.exposure.rescale_intensity(
+            saliency_map, in_range="image", out_range=np.uint8
+        )
 
         # rescale salmap to the original size
-        # salmap = resize(salmap, (window.shape[1], window.shape[2]), anti_aliasing=False)
-        return (salmap, salmax_coords)
+        # saliency_map = resize(saliency_map, (self.frame.shape), anti_aliasing=False)
+
+        self.saliency_map = saliency_map
+        self.saliency_map_coords = saliency_map_coords
 
     def clean_up(self):
         self.flags.halt.set()

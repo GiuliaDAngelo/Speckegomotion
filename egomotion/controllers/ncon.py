@@ -38,12 +38,19 @@ class NengoController:
 
     def __init__(
         self,
-        k_pan: np.ndarray = np.array([1.0, 0.0, 0.0]),
-        k_tilt: np.ndarray = np.array([1.0, 0.0, 0.0]),
+        k_pan: np.ndarray = None,
+        k_tilt: np.ndarray = None,
         target_pan: int = 64,
         target_tilt: int = 64,
+        # REVIEW: What is 'depth' here?
         depth: float = 0.0,
     ):
+
+        if k_pan is None:
+            k_pan = np.array([1.0, 0.0, 0.0])
+        if k_tilt is None:
+            k_tilt = np.array([1.0, 0.0, 0.0])
+
         self.k_pan = k_pan
         self.k_tilt = k_tilt
         # need to initialize the actual pan and tilt coords
@@ -52,8 +59,6 @@ class NengoController:
         # REVIEW: These the same as the targets - is that the intention?
         self.pan = target_pan  # m
         self.tilt = target_tilt  # m
-        # REVIEW: What is this?
-        self.depth = depth
 
         self.target_pan = target_pan  # m
         self.target_tilt = target_tilt  # m
@@ -63,11 +68,11 @@ class NengoController:
         self.model = nengo.Network()
 
         with self.model:
-            tilt_inp = nengo.Node(lambda t: self.tilt)
-            pan_inp = nengo.Node(lambda t: self.pan)
+            tilt_inp = nengo.Node(self.tilt)
+            pan_inp = nengo.Node(self.pan)
 
-            pan_target = nengo.Node(lambda t: self.target_pan)
-            tilt_target = nengo.Node(lambda t: self.target_tilt)
+            pan_target = nengo.Node(self.target_pan)
+            tilt_target = nengo.Node(self.target_tilt)
 
             # We are doing a PID controller where the target is to have
             # 0 error on the tiltontal component of the saliancy map
@@ -107,18 +112,18 @@ class NengoController:
             target (np.ndarray):
                 The target coordinates (requested)
         """
-        # actual = np.array([20, 30])
-        # target = np.array([64, 64])
+        actual = np.array([20, 30])
+        target = np.array([64, 64])
 
         # REVIEW: Should these be the other way around (so run(target, actual))?
 
-        result = NengoController.run(actual, target)
+        result = NengoController()(actual, target)
         return result
 
     def __call__(
         self,
         salmax_coords: np.ndarray,
-        depth: float,
+        depth: float = 0.0,
         sim_run_time: float = 5.0,
     ):
         """

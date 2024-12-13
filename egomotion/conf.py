@@ -42,6 +42,10 @@ IN_DIR = mkdir(env.path("IN_DIR", ROOT_DIR / "data/input"))
 OUT_DIR = mkdir(env.path("OUT_DIR", ROOT_DIR / "data/output"))
 PLOT_DIR = mkdir(env.path("PLOT_DIR", ROOT_DIR / "data/output/plots"))
 
+# Dummy operation - for debugging purposes
+# ==================================================
+DUMMY = env.bool("DUMMY", False)
+
 # Logger configuration
 # ==================================================
 # Enable colour tags in messages.
@@ -69,9 +73,9 @@ logger.configure(**log_config)
 # k_size = 8  # Size of the kernel (NxN)
 # k_sigma = 5  # Sigma for the first Gaussian
 
-k_center_size = 8  # Size of the kernel (NxN)
+k_center_size = 9  # Size of the kernel (NxN)
 k_center_sigma = 1  # Sigma for the first Gaussian
-k_surround_size = 8  # Size of the kernel (NxN)
+k_surround_size = 9  # Size of the kernel (NxN)
 k_surround_sigma = 4  # Sigma for the second Gaussian
 
 # Event parameters
@@ -80,19 +84,23 @@ ev_polarity = True
 ev_video_fps = 60.0  # Frames per second
 ev_video_dur = 4  # Duration of video in seconds
 ev_ts_ms = False  # Flag to convert timestamps to microseconds
+ev_drop_rate = 0.0  # Percentage of events to drop
+ev_random_rate = 0.1  # Rate of generation of random events
 
 # Stimulus parameters
 # ==================================================
 stim_speed = 60.0  # Speed of stimulus in pixels per second/ 1000 ms
 stim_show_egomap = True
 stim_save_res = True
-# REVIEW: This is defined multiple times
-vm_num_pyr = 1
-threshold = 0
+# REVIEW: This was defined multiple times
+# vm_num_pyr = 1
+
+# REVIEW: This was defined multiple times
+# threshold = 0
 
 # Visual attention parameters (von Mises filters)
-# REVIEW: This is defined multiple times
 # ==================================================
+# REVIEW: This was defined multiple times
 vm_num_pyr = 1  # Number of pyramids
 tau_mem = 0.01  # Membrane time constant
 threshold = 200
@@ -105,7 +113,7 @@ vm_thick = 3  # thickness of the arc
 vm_offsetpxs = 0  # size / 2
 vm_offset = (vm_offsetpxs, vm_offsetpxs)
 vm_fltr_resize_perc = [2, 2]
-vm_num_pyr = 3
+# vm_num_pyr = 1
 
 # The angles are generated in radians,
 # ranging from 0 to 2π in steps of π/4
@@ -114,17 +122,12 @@ vm_thetas = np.arange(0, 2 * np.pi, np.pi / 4)
 
 # Visualization parameters
 # ==================================================
-vis_resolution = [128, 128]  # Resolution of the DVS sensor
-vis_max_x = vis_resolution[0]
-vis_max_y = vis_resolution[1]
-vis_drop_rate = 0.0  # Percentage of events to drop
+sensor_size = [128, 128]  # Resolution of the DVS sensor
+vis_max_x = sensor_size[0]
+vis_max_y = sensor_size[1]
 vis_update_interval = 0.001  # 0.02 #seconds
 last_update_time = datetime.now()
 
 # PyTorch parameters
 # ==================================================
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-
-# Dummy operation - for debugging purposes
-# ==================================================
-dummy = False

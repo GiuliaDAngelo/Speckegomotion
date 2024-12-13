@@ -165,9 +165,6 @@ cython_debug/
 data/
 results/
 images/
-samna.log
+**.log
 **.npy
 **.png
-
-
-

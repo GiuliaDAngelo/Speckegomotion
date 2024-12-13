@@ -16,28 +16,20 @@ Steps:
 """
 
 # --------------------------------------
-import torch
-
-# --------------------------------------
-import matplotlib
-import matplotlib.pyplot as plt
-
-matplotlib.use("TkAgg")
-
-# --------------------------------------
-from multiprocessing import Event
-
-# --------------------------------------
 from egomotion import conf
 from egomotion import utils
 from egomotion.conf import logger
 from egomotion.network import kernels
-from egomotion.utils import functions as efun
+from egomotion.network import AttentionNet
 from egomotion.controllers import Hub
+from egomotion.controllers import NengoController
+from egomotion.devices import SpeckDevice
+from egomotion.devices import PTU
 
 
 def main_egomotion():
 
+    # REVIEW: Is this still used?
     # create results folders
     if conf.stim_save_res:
         utils.mkdir(conf.respath)
@@ -109,6 +101,8 @@ def main():
     # }
 
     # Kernels
+    # ==================================================
+    logger.info("Creating the kernels...")
     center_kernel = kernels.gaussian(
         conf.k_center_size,
         conf.k_center_sigma,
@@ -126,8 +120,37 @@ def main():
         conf.vm_offset,
     )
 
-    hub = Hub(center_kernel, surround_kernel, attention_kernel)
+    # Egomition / attention network
+    # ==================================================
+    logger.info("Setting up the attention network...")
+    net = AttentionNet(
+        center_kernel,
+        surround_kernel,
+        attention_kernel,
+        conf.tau_mem,
+        conf.vm_num_pyr,
+    )
 
+    # The Nengo controller
+    # ==================================================
+    logger.info("Setting up the Nengo controller...")
+    controller = NengoController()
+
+    # The PTU
+    # ==================================================
+    logger.info("Setting up the PTU interface...")
+    ptu = PTU()
+
+    # The Speck device
+    # ==================================================
+    logger.info("Setting up the camera...")
+    speck = SpeckDevice()
+
+    # The hub
+    # ==================================================
+    hub = Hub(net, ptu, speck, controller)
+
+    hub.run()
 
 if __name__ == "__main__":
     main()
