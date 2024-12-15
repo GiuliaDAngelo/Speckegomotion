@@ -20,9 +20,9 @@ import matplotlib
 matplotlib.use('TkAgg')
 
 # Parameters kernel
-size_krn_center = 8  # Size of the kernel (NxN) (all half ) - 8
+size_krn_center = 9  # Size of the kernel (NxN) (all half ) - 8
 sigma_center = 2  # Sigma for the first Gaussian - 1
-size_krn_surround = 8  # Size of the kernel (NxN) - 8
+size_krn_surround = 9  # Size of the kernel (NxN) - 8
 sigma_surround = 4  # Sigma for the first Gaussian - 4
 
 # Parameters network
@@ -44,8 +44,8 @@ exp =  'objego'
 # exp =  'onlyobj'
 
 #Parameters stimuli
-sf = 3  # spatial frequency [0.2, 1, 4]
-sf_small = 4
+sf = 0.3  # spatial frequency [0.2, 1, 4]
+sf_small = 3
 speed = 0.01 # speed in cycles per frame
 small_speed = 0.09
 duration = 2  # duration in seconds

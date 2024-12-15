@@ -19,5 +19,5 @@ for dir in dirs_oms:
         if not np.isnan(np.mean(IoUs)):
             means.append(np.mean(IoUs))
             stds.append(np.std(IoUs))
-    print('Mean IoU for sequence ' + dir + ' is ' + str(round(np.mean(means), 2)))
+    print('Mean IoU for sequence ' + dir + ' is ' + str(round(np.mean(means), 4)))
     print('+/-' + dir + ' is ' + str(round(np.mean(stds), 2)))

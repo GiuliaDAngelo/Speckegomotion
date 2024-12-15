@@ -140,7 +140,7 @@ def gaussian_kernel(size, sigma):
 def net_def(filter, tau_mem, num_pyr, size_krn, device, stride):
     # define our single layer network and load the filters
     net = nn.Sequential(
-        nn.Conv2d(1, num_pyr, (size_krn,size_krn), stride=stride, bias=False),
+        nn.Conv2d(1, num_pyr, (size_krn,size_krn),  stride=stride, bias=False),
         sl.LIF(tau_mem),
     )
     net[0].weight.data = filter.unsqueeze(1).to(device)
