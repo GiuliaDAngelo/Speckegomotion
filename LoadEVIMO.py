@@ -9,8 +9,8 @@ import sinabs.layers as sl
 import pickle
 
 import matplotlib
+matplotlib.use('TkAgg')
 
-from pyqtgraph.examples.fractal import depthLabel
 
 
 def loadeventsEVIMO(evpath, dir, npz, file):
@@ -165,10 +165,13 @@ size_krn_surround = 8  # Size of the kernel (NxN) - 8
 sigma_surround = 4  # Sigma for the first Gaussian - 4
 
 eventsFLAG = False
+showimages = False
 tau_mem = 0.02 #(events 0.03)
 threshold = 0.80 #(events 0.60)
 num_pyr = 1
 maxBackgroundRatio = 3.5
+
+
 
 if eventsFLAG:
     for dir in dirs_events:
@@ -218,7 +221,7 @@ if eventsFLAG:
 
             time = 0
             i = 0
-            fig, axs = plt.subplots(1, 3, figsize=(10, 5))
+            # fig, axs = plt.subplots(1, 3, figsize=(10, 5))
             IOUs = []
             timestamps = [gt['ts'] for gt in GT]
             for evframe in evframes:
@@ -259,9 +262,9 @@ if eventsFLAG:
                         ground_truth = np.zeros_like(evmaskdata[i], dtype=evframe[0].dtype)
                         ground_truth[indexes_gt] = evframe[0][indexes_gt]
 
-                        axs[0].imshow(evframe[0])
-                        axs[1].imshow(ground_truth)
-                        axs[2].imshow(spike_gt.cpu().numpy())
+                        # axs[0].imshow(evframe[0])
+                        # axs[1].imshow(ground_truth)
+                        # axs[2].imshow(spike_gt.cpu().numpy())
 
                         plt.imsave(evframeres + f'evframe_{i}.png', evframe[0], cmap='gray')
                         plt.imsave(maskframeres + f'mask_{i}.png', spike_gt.cpu().numpy(), cmap='gray')
@@ -331,7 +334,8 @@ else:
             ###### ###### ###### ###### ###### ######
 
             i = 0
-            # fig, axs = plt.subplots(1, 3, figsize=(10, 5))
+            if showimages:
+                fig, axs = plt.subplots(1, 3, figsize=(10, 5))
             IOUs = []
             max_x = evframesdata[0].shape[2]
             max_y = evframesdata[0].shape[1]
@@ -369,24 +373,26 @@ else:
                     ###################################
                     ############ Plot #################
                     ###################################
-
-                    # axs[0].cla()
-                    # axs[1].cla()
-                    # axs[2].cla()
+                    if showimages:
+                        axs[0].cla()
+                        axs[1].cla()
+                        axs[2].cla()
 
                     indexes_gt = evmaskdata[i] != 0
                     ground_truth = np.zeros_like(evmaskdata[i], dtype=evframe[0].dtype)
                     ground_truth[indexes_gt] = evframe[0][indexes_gt]
 
-                    # axs[0].imshow(evframe[0])
-                    # axs[1].imshow(ground_truth)
-                    # axs[2].imshow(spike_gt.cpu().numpy())
+                    if showimages:
+                        axs[0].imshow(evframe[0])
+                        axs[1].imshow(ground_truth)
+                        axs[2].imshow(spike_gt.cpu().numpy())
 
                     plt.imsave(evframeres + f'evframe_{i}.png', evframe[0], cmap='gray')
                     plt.imsave(maskframeres + f'mask_{i}.png', spike_gt.cpu().numpy(),cmap='gray')
                     plt.imsave(OMSframeres + f'OMS_{i}.png', spike_pred.cpu().numpy(), cmap='gray')
-                # plt.draw()
-                # plt.pause(0.001)
+                if showimages:
+                    plt.draw()
+                    plt.pause(0.001)
                 i += 1
             with open(OMSpath + dir + '/' + seq_name + 'IOUs.pkl', 'wb') as f:
                 pickle.dump(IOUs, f)

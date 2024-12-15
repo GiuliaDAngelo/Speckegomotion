@@ -1,6 +1,6 @@
 
 
-from egomotionlayer_functions import *
+# from egomotionlayer_functions import *
 import torchvision.utils as vutils
 import matplotlib.pyplot as plt
 import pickle
