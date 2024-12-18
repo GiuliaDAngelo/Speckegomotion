@@ -8,5 +8,6 @@ images/egoattention/
 *.npy
 *.png
 *.pkl
+images/oldexps/
 
 
