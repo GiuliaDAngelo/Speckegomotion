@@ -57,8 +57,8 @@ def perform_attention_with_pan_tilt(
     tr: np.ndarray= None,
 ):
 
-    pan_norm = (pr[1] - pr[0]) / 2
-    tilt_norm = (tr[1] - tr[0]) / 2
+    # pan_norm = (pr[1] - pr[0]) / 2
+    # tilt_norm = (tr[1] - tr[0]) / 2
 
     while not flags.halt.is_set():
 
@@ -69,15 +69,18 @@ def perform_attention_with_pan_tilt(
             break
 
         # cmds values are between -1 and 1
-        alpha=0.9
+        alpha=1.
         cmd = run_controller(
                 np.array([salmap_coords[0], salmap_coords[1]]),
                 np.array([resolution[1] // 2, resolution[0] // 2]),
-                k_pan=np.array([(1.*alpha), 0., 0.]),
-                k_tilt=np.array([(1.*alpha), 0., 0.]),
+                k_pan=np.array([alpha, 0., 0.]),
+                k_tilt=np.array([alpha, 0., 0.]),
             )
-        delta_pan = int(2 * cmd[0] * pan_norm / resolution[0])
-        delta_tilt = - int(2 * cmd[1] * tilt_norm / resolution[1])
+        # delta pan and tilt to obtain an output between -1 and 1
+        # convert the -1, 1 to actual degrees of pan and tilt
+        delta_pan = - int(cmd[0] //degrees_per_pos)
+        delta_tilt = - int(cmd[1]//degrees_per_pos)
+
         #make a check if pan_angle and tilt_angle are within the range
         pan_angle = np.clip(delta_pan, pan_range[0], pan_range[1]).astype(int)
         tilt_angle = np.clip(delta_tilt, tilt_range[0], tilt_range[1]).astype(int)
@@ -96,9 +99,9 @@ def perform_attention_with_pan_tilt(
                 send_command(ser, pan_command)
                 send_command(ser, f'TU\n')
                 send_command(ser, tilt_command)
-                send_command(ser, f'A\n')
+                # send_command(ser, f'A\n')
                 response = ser.readline().decode('utf-8').strip()
-                time.sleep(0.1)
+                # time.sleep(0.1)
             if response:
                 print(f"Response from device: {response}")
 
@@ -177,14 +180,23 @@ if __name__ == "__main__":
     serial_port = "/dev/tty.usbserial-FTGZO55F"
     baud_rate = 9600
 
+    #### pan-tilt range pan: -3090/3090 - tilt:-907 and 604
+
+    degrees_per_pos = 0.02572
+    pan_fov_range = 45 # degrees as per humans
+    # to obtain the positions for visual field of teh camera
+
+    tilt_fov_range_up = 15 # degrees as per humans (should be 20)
+    tilt_fov_range_down = 23  # degrees as per humans (should be 47)
+
     # Define pan and tilt range values
     pan_range = np.array([
-        -3090,
-        3090,
+        -(pan_fov_range // degrees_per_pos),
+        (pan_fov_range // degrees_per_pos),
     ])  # Replace with actual pan range of your device if different
     tilt_range = np.array([
-        -907,
-        604,
+        -(tilt_fov_range_down // degrees_per_pos),
+        (tilt_fov_range_up // degrees_per_pos),
     ])  # Replace with actual tilt range of your device if different
 
     with serial.Serial(serial_port, baud_rate, timeout=1) as ser:
@@ -278,12 +290,17 @@ if __name__ == "__main__":
                     # logger.info("Computing attention")
                     salmap, salmap_coords[:] = run_attention(suppression.detach().cpu().numpy(), netattention, device)
 
+                    ## need to pass it to a low pass filter, running mean and use the running mean to compute the pan tilt
+
                     flags.pantilt.set()
 
                     cv2.imshow('Events', window)
                     cv2.imshow('Events after Suppression', suppression[0].detach().cpu().numpy())
-                    cv2.circle(salmap, (salmap_coords[1], salmap_coords[0]), 5, (255, 255, 255), -1)
-                    cv2.imshow('Saliency Map', cv2.applyColorMap(cv2.convertScaleAbs(salmap), cv2.COLORMAP_JET))
+                    # cv2.circle(salmap, (salmap_coords[1], salmap_coords[0]), 5, (255, 255, 255), -1)
+                    # cv2.imshow('Saliency Map', cv2.applyColorMap(cv2.convertScaleAbs(salmap), cv2.COLORMAP_JET))
+                    black_wind = np.zeros_like(salmap)
+                    cv2.circle(black_wind, (salmap_coords[1], salmap_coords[0]), 5, (255, 255, 255), -1)
+                    cv2.imshow('Saliency Map', cv2.applyColorMap(cv2.convertScaleAbs(black_wind), cv2.COLORMAP_JET))
                     cv2.waitKey(1)
                 
                 else:

@@ -24,8 +24,8 @@ class NengoController:
         # to something meaningful that will not cause 
         # dramatic swings when the controller is first turned
         # on.
-#         self.tilt = target_tilt# m
-#         self.pan = target_pan# m
+        self.tilt = target_tilt# m
+        self.pan = target_pan# m
 # 
         self.target_pan = target_pan # m
         self.target_tilt = target_tilt # m
@@ -86,6 +86,7 @@ class NengoController:
 
 
     def __call__(self, salmax_coords, sim_run_time=1.):
+        # normalise the value between -1 and 1
         self.pan = salmax_coords[1]
         self.tilt = salmax_coords[0]
 
