@@ -7,7 +7,10 @@ import matplotlib
 matplotlib.use('TkAgg')
 
 
-respath = '/Users/giuliadangelo/workspace/code/Speckegomotion/results/'
+# respath = '/Users/giuliadangelo/workspace/code/Speckegomotion/results/resultsegoobjegoonlyobj/'
+respath = '/Users/giuliadangelo/workspace/code/Speckegomotion/results/objegokernel/'
+
+
 
 dirs_exp = [d for d in os.listdir(respath) if os.path.isdir(os.path.join(respath, d))]
 #sort dirs_exp
@@ -17,13 +20,23 @@ max_y = 350
 dur_video = 2
 time_wnd_frames= 0.01834
 
-x = np.arange(len(dirs_exp)*2)
-pos = 0
-order = [2, 4, 1, 5, 7, 8, 9, 6, 3]
 
-for i in range(1, len(dirs_exp)+1):
-    num = order.index(i)
-    dir = dirs_exp[num]
+pos = 0
+# order = [2, 4, 1, 5, 7, 8, 9, 6, 3] #resultsegoobjegoonlyobj
+
+# order = [2, 3, 6, 7, 4, 5, 8, 0, 1] #objegokernel
+order = [2, 3, 6, 7, 5, 8] #objegokernel sigma
+# order = [2, 0, 1] #objegokernel kernel size
+
+
+
+x = np.arange(len(order)*2)
+plt.figure(figsize=(10, 8))
+for i in range(0, len(order)):
+    # num = order.index(i)
+    # dir = dirs_exp[num]
+
+    dir = dirs_exp[order[i]]
     with open(respath+dir+'/spikes.pkl', 'rb') as f:
         spikes = pickle.load(f)
 
@@ -54,14 +67,20 @@ for i in range(1, len(dirs_exp)+1):
     pos+=2
 
 
-labels = ['   1', '', '    2', '', '   3', '', '   4','', '   5','', '   6','', '   7', '', '   8', '','   9', ''] # Custom x-axis labels
+fontsize = 18
+# labels = ['   1', '', '    2', '', '   3', '', '   4','', '   5','', '   6','', '   7', '', '   8', '','   9', '']
+# labels = ['   sc1ss4krn8', '', '    sc2ss4krn8', '', '   sc3ss4krn8', '', '   sc4ss4krn8','', '   sc2ss6krn8','', '   sc2ss8krn8','', '   sc4ss8krn8', '', '   sc4ss8krn16', '','   sc8ss16krn32', ''] # Custom x-axis labels
+labels = ['     Σc=1,Σs=4', ' ', '      Σc=2,Σs=4', ' ', '      Σc=3,Σs=4', ' ', '     Σc=4,Σs=4',' ', '     Σc=2,Σs=8',' ', '     Σc=4,Σs=8', ' '] # Custom x-axis labels
+# labels = ['            Σc=2,Σs=4; s=8', ' ', '            Σc=4,Σs=8; s=16', ' ', '            Σc=8,Σs=16; s=32', ' '] # Custom x-axis labels
+
+
 # Customize the plot  # Set custom x-axis labels
-plt.xlabel('Experiment',fontsize=18)
+# plt.xlabel('Experiment',fontsize=fontsize)
 # plt.ylabel('Values')
 # plt.title('Mean with Standard Deviation as Error Bars')
-plt.legend(['MFR [Hz]', 'ISI [s]'], fontsize=18)
-plt.xticks(x, labels, fontsize=18)
-plt.yticks(fontsize=18) # Set custom x-axis labels
+plt.legend(['MFR [Hz]', 'ISI [s]'], fontsize=fontsize)
+plt.xticks(x, labels, fontsize=fontsize)
+plt.yticks(fontsize=fontsize) # Set custom x-axis labels
 plt.show()
 
 # plt.figure()
