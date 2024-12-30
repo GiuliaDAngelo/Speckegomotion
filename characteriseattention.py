@@ -1,22 +1,29 @@
 # Import the function 'importIitYarp' from the 'bimvee' library to load event-based camera data
 from bimvee.importIitYarp import importIitYarp
-
-# Import necessary libraries for plotting and numerical operations
 import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 
-# Set the backend for Matplotlib to 'TkAgg' to enable interactive plotting
 matplotlib.use('TkAgg')
+from functions.OMS_helpers import *
+
+
+#############################
+######### load data #########
+#############################
+
 
 # Define the camera from which events will be extracted ('right' camera)
 camera_events = 'right'
 
 # Specify the codec format used for decoding the event data ('24bit' format)
-codec = '24bit'
+codec = '20bit'
+# codec = '24bit'
+
 
 # Set the file path where the event data is stored
-filePathOrName = '/Users/giuliadangelo/workspace/data/DATASETs/attention-multiobjects/'
+# filePathOrName = '/Users/giuliadangelo/workspace/data/DATASETs/attention-multiobjects/'
+# filePathOrName = '/Users/giuliadangelo/workspace/data/DATASETs/IROS_attention/calibration/obj/ATIS/'
+filePathOrName = '/Users/giuliadangelo/workspace/data/DATASETs/IROS_attention/calib_circles/calibration_circles/ATIS/'
 
 # Load the event data using the 'importIitYarp' function
 # 'events' will contain the structured event data from the file
@@ -35,6 +42,54 @@ e_pol = events['data'][camera_events]['dvs']['pol']  # Event polarity (1 for ON 
 width = 304
 height = 240
 
+###############################
+####### create networks #######
+###############################
+
+# Parameters OMS
+size_krn_center = 8  # Size of the kernel (NxN) (all half ) - 8
+sigma_center = 1  # Sigma for the first Gaussian - 1
+size_krn_surround = 8  # Size of the kernel (NxN) - 8
+sigma_surround = 4  # Sigma for the first Gaussian - 4
+
+# Parameters OMS
+threshold = 0.80
+num_pyr = 1
+
+
+# Parameters visual attention
+size = 10  # Size of the kernel
+r0 = 4  # Radius shift from the center
+rho = 0.1  # Scale coefficient to control arc length
+theta = np.pi * 3 / 2  # Angle to control the orientation of the arc
+thick = 3  # thickness of the arc
+offsetpxs = 0 #size / 2
+offset = (offsetpxs, offsetpxs)
+fltr_resize_perc = [2, 2]
+num_pyr = 3
+# Create Von Mises (VM) filters with specified parameters
+# The angles are generated in radians, ranging from 0 to 2π in steps of π/4
+thetas = np.arange(0, 2 * np.pi, np.pi / 4)
+
+
+
+device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+
+##### egomotion #####
+center, surround = OMSkernels(size_krn_center, sigma_center, size_krn_surround, sigma_surround)
+ss = 1
+sc = ss + sigma_surround - sigma_center
+net_center = net_def(center, tau_mem, num_pyr, size_krn_center, device, sc)
+net_surround = net_def(surround, tau_mem, num_pyr, size_krn_surround, device, ss)
+
+
+##### attention #####
+VMkernels = create_vm_filters(thetas, size, rho, r0, thick, offset, fltr_resize_perc)
+# plot_filters(filters_attention, thetas)
+netattention = net_def(VMkernels, tau_mem, num_pyr, size, device, 1)
+
+
+###### Define window  visualisation #######
 # Define the window period for event visualization (in milliseconds)
 time_window=200  #  ms window for showing events
 window_period=200  #  ms window for showing events

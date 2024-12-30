@@ -14,15 +14,16 @@ Steps:
 4. Save the generated frames and create videos from the resulting maps.
 '''
 
-from egomotionlayer_functions import *
-
+from functions.OMS_helpers import *
+from functions.data_helpers import *
+import pickle
 import matplotlib
 matplotlib.use('TkAgg')
 
 # Parameters kernel
-size_krn_center = 9  # Size of the kernel (NxN) (all half ) - 8
-sigma_center = 2  # Sigma for the first Gaussian - 1
-size_krn_surround = 9  # Size of the kernel (NxN) - 8
+size_krn_center = 8  # Size of the kernel (NxN) (all half ) - 8
+sigma_center = 1  # Sigma for the first Gaussian - 1
+size_krn_surround = 8  # Size of the kernel (NxN) - 8
 sigma_surround = 4  # Sigma for the first Gaussian - 4
 
 # Parameters network
@@ -30,18 +31,25 @@ threshold = 0.80
 num_pyr = 1
 
 # Parameters events
-polarity = True
 FPSvideo = 60.0  # Frames per second # Duration of video in seconds
-tsFLAG = False  # Flag to convert timestamps to microseconds
 
 # Flags
+polarity = True
+tsFLAG = False  # Flag to convert timestamps to microseconds
 show_egomap = True
 save_res = True
+characterisationFLAG = True
 
 # Paths
 exp =  'objego'
 # exp =  'ego'
 # exp =  'onlyobj'
+
+if characterisationFLAG:
+    exp_kernel = 'krncenter' + str(size_krn_center) + 'sigcenter' + str(sigma_center) + 'krnsurround' + str(
+        size_krn_surround) + 'sigsurround' + str(sigma_surround)
+else:
+    exp_kernel = ''
 
 #Parameters stimuli
 sf = 0.3  # spatial frequency [0.2, 1, 4]
@@ -54,7 +62,7 @@ duration = 2  # duration in seconds
 name_exp = exp+'sf'+str(sf)+'sp'+str(speed)+'sf'+str(sf_small)+'sp'+str(small_speed)
 name_exp = name_exp.replace(".", "")
 
-respath = 'results/'+name_exp+'/'
+respath = 'results/'+name_exp+exp_kernel+'/'
 evdata_path = 'ev_100_10_100_300_0.3_0.01.dat'
 evpath = '/Users/giuliadangelo/workspace/code/IEBCS/data/video/stimuli/'+name_exp+'/'+name_exp+evdata_path+'.npy'
 
@@ -74,7 +82,7 @@ if __name__ == '__main__':
     time_wnd_frames = duration/len_fr
     tau_mem = time_wnd_frames
 
-    #define network
+    #define egomotion network
     center, surround = OMSkernels(size_krn_center, sigma_center, size_krn_surround, sigma_surround)
     ss = 1
     sc = ss + sigma_surround - sigma_center
@@ -99,7 +107,7 @@ if __name__ == '__main__':
             plt.clf()
             plt.imshow(OMS[0].cpu().numpy(), cmap='gray', vmin=0, vmax=255)
             plt.colorbar(shrink=0.3)
-            # plt.title('Suppression Map')
+            # plt.title('OMS Map')
             plt.draw()
             plt.pause(0.001)
         if save_res:

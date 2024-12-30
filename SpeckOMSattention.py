@@ -1,10 +1,50 @@
-from Speckegolayer_functions import *
-from configSpeckmain import *
+from functions.Speck_funcs import *
+from functions.attention_helpers import *
+from functions.OMS_helpers import *
 from controller.helper import run_controller
 import serial
 import matplotlib
+import cv2
+import time
+import numpy as np
 matplotlib.use('TkAgg')
 
+
+
+# Visualization parameters
+resolution = [128, 128] # Resolution of the DVS sensor
+max_x = resolution[0]
+max_y = resolution[1]
+drop_rate = 0.0  # Percentage of events to drop
+update_interval = 0.001 #0.02 #seconds
+last_update_time = time.time()
+
+
+# Parameters kernel
+size_krn_center = 8  # Size of the kernel (NxN)
+sigma_center = 1  # Sigma for the first Gaussian
+size_krn_surround = 8  # Size of the kernel (NxN)
+sigma_surround = 4  # Sigma for the first Gaussian
+
+num_pyr = 1
+tau_mem = 0.01
+threshold = 200
+
+
+# Visual attention paramters
+size = 10  # Size of the kernel
+r0 = 4  # Radius shift from the center
+rho = 0.1  # Scale coefficient to control arc length
+theta = np.pi * 3 / 2  # Angle to control the orientation of the arc
+thick = 3  # thickness of the arc
+offsetpxs = 0 #size / 2
+offset = (offsetpxs, offsetpxs)
+fltr_resize_perc = [2, 2]
+num_pyr = 3
+
+# Create Von Mises (VM) filters with specified parameters
+# The angles are generated in radians, ranging from 0 to 2π in steps of π/4
+thetas = np.arange(0, 2 * np.pi, np.pi / 4)
 
 
 if __name__ == "__main__":
@@ -12,31 +52,16 @@ if __name__ == "__main__":
     device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 
     ##### egomotion #####
-
-    # loading egomotion kernel
-    filter_egomotion = egokernel()
-
-    # Initialize the network with the loaded filter
-    netegomotion = net_def(filter_egomotion,tau_mem, num_pyr, filter_egomotion.size(1))
+    center, surround = OMSkernels(size_krn_center, sigma_center, size_krn_surround, sigma_surround)
+    ss = 1
+    sc = ss + sigma_surround - sigma_center
+    net_center = net_def(center, tau_mem, num_pyr, size_krn_center, device, sc)
+    net_surround = net_def(surround, tau_mem, num_pyr, size_krn_surround, device, ss)
 
     ##### attention #####
-
-    # loading attention kernels
-    filters_attention = create_vm_filters(thetas, size, rho, r0, thick, offset)
+    VMkernels = create_vm_filters(thetas, size, rho, r0, thick, offset, fltr_resize_perc)
     # plot_filters(filters_attention, thetas)
-
-    # Initialize the attention network with the loaded filters
-    netattention = network_init(filters_attention)
-
-    #### PanTilt setup ####
-
-    # Define the serial port and settings
-    serial_port = '/dev/tty.usbserial-FTGZO55F'
-    baud_rate = 9600
-
-    # Define pan and tilt range values
-    pan_range = (-3090, 3090)  # Replace with actual pan range of your device if different
-    tilt_range = (-907, 604)  # Replace with actual tilt range of your device if different
+    netattention = net_def(VMkernels, tau_mem, num_pyr, size, device, 1)
 
     ##### Speck initialisation for the sink #####
     # Set the Speck and sink events

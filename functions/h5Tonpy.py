@@ -1,6 +1,4 @@
 import h5py
-from egomotionlayer_functions import npy_data
-from array import array
 import numpy as np
 import numpy.lib.recfunctions as rf
 import tonic
