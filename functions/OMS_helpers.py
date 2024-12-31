@@ -41,10 +41,10 @@ def gaussian_kernel(size, sigma):
     kernel = (kernel - kernel.min()) / (kernel.max() - kernel.min())
     return kernel
 
-def net_def(filter, tau_mem, num_pyr, size_krn, device, stride):
+def net_def(filter, tau_mem, in_ch, out_ch, size_krn, device, stride):
     # define our single layer network and load the filters
     net = nn.Sequential(
-        nn.Conv2d(1, num_pyr, (size_krn,size_krn),  stride=stride, bias=False),
+        nn.Conv2d(in_ch, out_ch, (size_krn,size_krn),  stride=stride, bias=False),
         sl.LIF(tau_mem),
     )
     net[0].weight.data = filter.unsqueeze(1).to(device)
@@ -56,11 +56,6 @@ def egomotion(window, net_center, net_surround, device, max_y, max_x,threshold):
     window = window.unsqueeze(0).float().to(device)
     center = net_center(window)
     surround = net_surround(window)
-    center = torch.nn.functional.interpolate(center.unsqueeze(0), size=(max_y, max_x), mode='bilinear',
-                                             align_corners=False).squeeze(0)
-    surround = torch.nn.functional.interpolate(surround.unsqueeze(0), size=(max_y, max_x), mode='bilinear',
-                                             align_corners=False).squeeze(0)
-
     events = center - surround
     events = 1 - (events - events.min())/(events.max() - events.min())
     indexes = events >= threshold
@@ -88,6 +83,7 @@ def egomotion(window, net_center, net_surround, device, max_y, max_x,threshold):
     # plt.draw()
     # plt.pause(0.001)
     return OMS, indexes
+
 
 def mkdirfold(path):
     if not os.path.exists(path):
