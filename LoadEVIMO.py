@@ -94,11 +94,6 @@ def egomotion(window, net_center, net_surround, device, max_y, max_x,threshold):
     window = window.unsqueeze(0).float().to(device)
     center = net_center(window)
     surround = net_surround(window)
-    # center = torch.nn.functional.interpolate(center.unsqueeze(0), size=(max_y, max_x), mode='bilinear',
-    #                                          align_corners=False).squeeze(0)
-    # surround = torch.nn.functional.interpolate(surround.unsqueeze(0), size=(max_y, max_x), mode='bilinear',
-    #                                          align_corners=False).squeeze(0)
-
     events = center - surround
     events = 1 - (events - events.min())/(events.max() - events.min())
     indexes = events >= threshold
