@@ -9,7 +9,7 @@ images/egoattention/
 *.png
 *.pkl
 images/oldexps/
-
+functions/attention_layers
 
 
 
