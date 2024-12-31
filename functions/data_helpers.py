@@ -7,7 +7,20 @@ import tonic
 from natsort import natsorted
 import os
 import cv2
+from bimvee.importIitYarp import importIitYarp
 
+
+def load_yarp_events(filePathOrName,codec,camera_events):
+    # Load the event data using the 'importIitYarp' function
+    # 'events' will contain the structured event data from the file
+    events = importIitYarp(filePathOrName=filePathOrName,codec=codec)  # Codec to decode the event data
+    # Extract the 'x' and 'y' coordinates of events, their timestamps ('ts'), and polarity ('pol')
+    # These represent the x and y positions of the event, the time it occurred, and the polarity (whether it was a brightening or darkening event)
+    e_x = events['data'][camera_events]['dvs']['x']  # x-coordinates of events
+    e_y = events['data'][camera_events]['dvs']['y']  # y-coordinates of events
+    e_ts = np.multiply(events['data'][camera_events]['dvs']['ts'], 10 ** 3)  # Convert timestamps to milliseconds
+    e_pol = events['data'][camera_events]['dvs']['pol']  # Event polarity (1 for ON events, 0 for OFF events)
+    return e_x,e_y,e_ts,e_pol
 
 def npy_data(filePathOrName, tsFLAG):
     recording = np.load(filePathOrName)
