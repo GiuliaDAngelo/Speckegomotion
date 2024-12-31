@@ -85,9 +85,9 @@ if __name__ == '__main__':
     #define egomotion network
     center, surround = OMSkernels(size_krn_center, sigma_center, size_krn_surround, sigma_surround)
     ss = 1
-    sc = ss + sigma_surround - sigma_center
-    net_center = net_def(center, tau_mem, num_pyr, size_krn_center, device, sc)
-    net_surround = net_def(surround, tau_mem, num_pyr, size_krn_surround, device, ss)
+    sc = 1 #ss + sigma_surround - sigma_center
+    net_center = net_def(center, tau_mem, 1, 1, size_krn_center, device, sc)
+    net_surround = net_def(surround, tau_mem, 1, 1, size_krn_surround, device, ss)
 
     cnt=0
     spikes = [[] for _ in range((max_x+1)*(max_y+1))]
