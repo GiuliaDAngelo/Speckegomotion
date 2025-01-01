@@ -4,25 +4,6 @@ import torch.nn as nn
 import os
 
 
-def egomotion(window, net_center, net_surround, device, max_y, max_x,threshold):
-    window = torch.from_numpy(window).unsqueeze(0).float().to(device)
-    center = net_center(window)
-    surround = net_surround(window)
-    center = torch.nn.functional.interpolate(center.unsqueeze(0), size=(max_y, max_x), mode='bilinear',
-                                             align_corners=False).squeeze(0)
-    surround = torch.nn.functional.interpolate(surround.unsqueeze(0), size=(max_y, max_x), mode='bilinear',
-                                             align_corners=False).squeeze(0)
-    events = center - surround
-    events = (events - events.min()) / (events.max() - events.min())
-    indexes = events > threshold
-    if indexes.any():
-        OMS = torch.zeros_like(events)
-        OMS[indexes] = 255
-    else:
-        OMS = torch.zeros_like(events)
-    return OMS, indexes
-
-
 
 def OMSkernels(size_krn_center, sigma_center, size_krn_surround, sigma_surround):
     # create kernel Gaussian distribution
@@ -93,3 +74,14 @@ def mkdirfold(path):
         print('Folder already exists')
 
 
+def initialize_oms(device,OMS_PARAMS):
+    """Initialize OMS kernels and networks."""
+    center, surround = OMSkernels(
+        OMS_PARAMS['size_krn_center'], OMS_PARAMS['sigma_center'],
+        OMS_PARAMS['size_krn_surround'], OMS_PARAMS['sigma_surround']
+    )
+    net_center = net_def(center, OMS_PARAMS['tau_memOMS'], 1, 1,
+                         OMS_PARAMS['size_krn_center'], device, OMS_PARAMS['sc'])
+    net_surround = net_def(surround, OMS_PARAMS['tau_memOMS'], 1, 1,
+                           OMS_PARAMS['size_krn_surround'], device, OMS_PARAMS['ss'])
+    return net_center, net_surround
