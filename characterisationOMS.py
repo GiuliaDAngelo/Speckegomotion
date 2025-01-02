@@ -44,7 +44,7 @@ def setup_paths(config: Config):
         exp_kernel = f"krncenter{config.OMS_PARAMS['size_krn_center']}sigcenter{config.OMS_PARAMS['sigma_center']}krnsurround{config.OMS_PARAMS['size_krn_surround']}sigsurround{config.OMS_PARAMS['sigma_surround']}"
     else:
         exp_kernel = ""
-    respath = f"results/{name_exp}{exp_kernel}/"
+    respath = f"results/OMS/{name_exp}{exp_kernel}/"
     evdata_path = "ev_100_10_100_300_0.3_0.01.dat"
     evpath = f"{config.BASE_PATH}{name_exp}/{name_exp}{evdata_path}.npy"
     return respath, evpath
@@ -56,7 +56,7 @@ def process_events(config: Config):
 
     # Create results folders
     if config.SAVE_RES:
-        create_results_folders(respath)
+        create_results_folders(respath, '/OMS')
 
     # Load events
     time_wnd_frames = 1000  # 1kHz as IEBCS

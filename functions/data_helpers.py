@@ -76,10 +76,10 @@ def create_video_from_frames(frame_folder, output_video, fps=30):
     cv2.destroyAllWindows()
 
 
-def create_results_folders(respath):
+def create_results_folders(respath, namefld):
     #check if teh folders exist already
     createfld('', respath)
-    createfld(respath, '/OMS')
+    createfld(respath, namefld)
 
 def load_eventsnpy(polarity, dur_video, FPS, filePathOrName,tsFLAG,time_wnd_frames):
     rec = npy_data(filePathOrName,tsFLAG)
