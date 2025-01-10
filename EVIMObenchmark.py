@@ -1,6 +1,4 @@
 import numpy as np
-import torchvision
-import tonic
 import matplotlib.pyplot as plt
 import os
 from functions.OMS_helpers import initialize_oms, egomotion
@@ -24,7 +22,7 @@ class Config:
         'ss': 1
     }
     SHOWIMGS = False
-    maxBackgroundRatio = 3.5
+    maxBackgroundRatio = 2
     DEVICE = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 
 
@@ -48,11 +46,11 @@ def getIOU(spike_pred, spike_gt):
 
 # Load the .npz file
 evimofld = '/Users/giuliadangelo/workspace/data/DATASETs/EVIMO/'
-evpath = '/Users/giuliadangelo/workspace/data/DATASETs/EVIMO/EVIMOevents/'
-maskpath = '/Users/giuliadangelo/workspace/data/DATASETs/EVIMO/EVIMOmasks/'
-evfrpath = '/Users/giuliadangelo/workspace/data/DATASETs/EVIMO/EVIMOevframes/'
-maskfrpath = '/Users/giuliadangelo/workspace/data/DATASETs/EVIMO/EVIMOmasksframes/'
-OMSpath = '/Users/giuliadangelo/workspace/data/DATASETs/EVIMO/OMS/'
+evpath = evimofld + 'EVIMOevents/'
+maskpath = evimofld + 'EVIMOmasks/'
+evfrpath = evimofld + 'EVIMOevframes/'
+maskfrpath = evimofld + 'EVIMOmasksframes/'
+OMSpath = evimofld + 'OMS/'
 
 # look at dirs whitin the path
 dirs_events = [d for d in os.listdir(evpath) if os.path.isdir(os.path.join(evpath, d))]
@@ -93,7 +91,7 @@ for dir in dirs:
 
         i = 0
         if config.SHOWIMGS:
-            fig, axs = plt.subplots(1, 3, figsize=(10, 5))
+            fig, axs = plt.subplots(1, 4, figsize=(10, 5))
         IOUs = []
         SSIMs = []
         max_x = evframesdata[0].shape[2]
@@ -110,6 +108,7 @@ for dir in dirs:
 
             spike_pred = torch.zeros_like(OMS[0]).bool()
             torch.logical_and(spk_oms, spk_evframe.to(config.DEVICE), out=spike_pred)
+
             spk_mask = torch.zeros_like(dens_mask).to(config.DEVICE)
             torch.logical_and(dens_mask.to(config.DEVICE),spk_evframe.to(config.DEVICE), out=spk_mask)
 

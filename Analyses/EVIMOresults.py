@@ -9,6 +9,7 @@ dirs_oms = [d for d in os.listdir(OMSpath) if os.path.isdir(os.path.join(OMSpath
 num_seq = len(dirs_oms)
 
 for dir in dirs_oms:
+
     dirs_seq = [d for d in os.listdir(OMSpath + dir) if os.path.isdir(os.path.join(OMSpath + dir, d))]
     meansIoUs = []
     meansSSIMs = []
