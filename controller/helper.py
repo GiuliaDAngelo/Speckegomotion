@@ -11,11 +11,11 @@ def run_controller(salmax_coords, target_coords, k_pan, k_tilt):
         ## PID gains for depth controller
         ## target horizontal position of max and target depth for object
         _nengo_controller_obj = NengoController(
-                target_pan=target_coords[0],
-                target_tilt=target_coords[1],
+                target_tilt=target_coords[0],
+                target_pan=target_coords[1],
                 k_pan=k_pan,
                 k_tilt=k_tilt,
         )
     ### end if
-    return (salmax_coords - target_coords)
+    return (target_coords - salmax_coords)
         # _nengo_controller_obj(salmax_coords))
