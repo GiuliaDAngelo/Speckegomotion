@@ -9,5 +9,10 @@ images/egoattention/
 *.png
 *.pkl
 images/oldexps/
+functions/attention_layers/
+images/stimuliexpold/
+oldattention/
+results_old/
+
 
 
