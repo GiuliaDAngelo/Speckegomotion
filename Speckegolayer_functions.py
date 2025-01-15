@@ -205,10 +205,11 @@ def Specksetup():
     devkit.get_stop_watch().reset()
 
     # Create an empty window for event visualization
-    window = np.zeros((resolution[1], resolution[0]), dtype=np.uint8)
+    window_pos = np.zeros((resolution[1], resolution[0]), dtype=np.uint8)
+    window_neg = np.zeros((resolution[1], resolution[0]), dtype=np.uint8)
     numevs = [0]  # Use a list to allow modification within the thread
     events_lock = threading.Lock()
-    return sink, window, numevs, events_lock
+    return sink, window_pos, window_neg, numevs, events_lock
 
 def net_def(filter, tau_mem, num_pyr, size_krn):
     # define our single layer network and load the filters

@@ -39,7 +39,7 @@ def perform_attention_with_pan_tilt(dummy_pan_tilt: bool = True, showstats: bool
                 np.array([salmap_coords[1]/(resolution[1]), salmap_coords[0]/(resolution[1])]),
                 np.array([0.5, 0.5])
             )
-
+        # normalisazion to the pan_tilt range we have for the PTU range
         pan_angle = int((cmd[0] * (pan_range[1] - pan_range[0]) / 2) + (pan_range[1] + pan_range[0]) / 2)
         tilt_angle = int(
             (cmd[1] * (tilt_range[1] - tilt_range[0]) / 2) + (tilt_range[1] + tilt_range[0]) / 2)
