@@ -1,4 +1,4 @@
-from functions.Speck_funcs import *
+from functions.Speck_helpers import *
 from functions.attention_helpers import *
 from functions.OMS_helpers import *
 from controller.helper import run_controller
