@@ -8,7 +8,7 @@ matplotlib.use('TkAgg')
 
 
 # respath = '/Users/giuliadangelo/workspace/code/Speckegomotion/results/resultsegoobjegoonlyobj/'
-respath = '/Users/giuliadangelo/workspace/code/Speckegomotion/results/objegokernel/'
+respath = '/Users/giuliadangelo/workspace/code/Speckegomotion/results_characterisationOMS/OMSres/objegokernel/'
 
 
 
@@ -67,11 +67,13 @@ for i in range(0, len(order)):
     pos+=2
 
 
-fontsize = 18
+fontsize = 22
 # labels = ['   1', '', '    2', '', '   3', '', '   4','', '   5','', '   6','', '   7', '', '   8', '','   9', '']
 # labels = ['   sc1ss4krn8', '', '    sc2ss4krn8', '', '   sc3ss4krn8', '', '   sc4ss4krn8','', '   sc2ss6krn8','', '   sc2ss8krn8','', '   sc4ss8krn8', '', '   sc4ss8krn16', '','   sc8ss16krn32', ''] # Custom x-axis labels
-labels = ['     Σc=1,Σs=4', ' ', '      Σc=2,Σs=4', ' ', '      Σc=3,Σs=4', ' ', '     Σc=4,Σs=4',' ', '     Σc=2,Σs=8',' ', '     Σc=4,Σs=8', ' '] # Custom x-axis labels
-# labels = ['            Σc=2,Σs=4; s=8', ' ', '            Σc=4,Σs=8; s=16', ' ', '            Σc=8,Σs=16; s=32', ' '] # Custom x-axis labels
+
+
+labels = ['     σc=1,σs=4', ' ', '      σc=2,σs=4', ' ', '      σc=3,σs=4', ' ', '     σc=4,σs=4',' ', '     σc=2,σs=8',' ', '     σc=4,σs=8', ' '] # Custom x-axis labels
+# labels = ['            σc=2,σs=4; s=8', ' ', '            σc=4,σs=8; s=16', ' ', '            σc=8,σs=16; s=32', ' '] # Custom x-axis labels
 
 
 # Customize the plot  # Set custom x-axis labels
