@@ -112,14 +112,14 @@ dirs_events = [d for d in os.listdir(evpath) if os.path.isdir(os.path.join(evpat
 
 config = Config()
 for dir in dirs_events:
-    # if dir == "wall" or dir == "box" or dir == "fast" or dir == "table" or dir == "tabletop":
-    #     continue
+
     npz = '/npz/'
     #look at files in the dir
     files = [f for f in os.listdir(evpath+dir+npz) if f.endswith('.npz')]
     files = sorted(files)
+    accuracy = []
+    bbox = 10
     for file in files:
-        accuracy = []
         seq_name = file.split('.')[0]
         maskfile = seq_name +'_masks.npy'
 
@@ -143,17 +143,20 @@ for dir in dirs_events:
         # Run network on the sub-dataset
         time = 0
         i = 0
-        max_to_object = 0
-        cnt = 0
+        max_to_object = []
         timestamps = [gt['ts'] for gt in GT]
+        dir_seq_acc = 0
         for evframe_pos, evframe_neg in zip(evframes_pos, evframes_neg):
-            if time >= timestamps[i]:
+            if i < len(timestamps) and time >= timestamps[i]:
                 #split in polarities
                 curr_frame_pos = (evframe_pos[0] != 0.00).clone().detach().to(torch.int)
                 curr_frame_neg = (evframe_neg[0] != 0.00).clone().detach().to(torch.int)
 
-                # Load mask data
-                mask = evmaskdata[i]
+                if i >= len(evmaskdata) or not np.any(evmaskdata[i]):
+                    break
+                else:
+                    # Load mask data
+                    mask = evmaskdata[i]
 
                 # Compute OMS for polarities
                 OMS_pos, indexes_pos = egomotion(curr_frame_pos, net_center, net_surround, config.DEVICE, max_y, max_x,config.OMS_PARAMS['threshold'])
@@ -161,12 +164,6 @@ for dir in dirs_events:
                 OMS_pos = OMS_pos.squeeze(0).squeeze(0).cpu().detach().numpy()
                 OMS_neg = OMS_neg.squeeze(0).squeeze(0).cpu().detach().numpy()
 
-                # Compute saliency map for OMS
-                vSliceOMS = np.expand_dims(np.stack((OMS_pos, OMS_neg)), 0)
-                with torch.no_grad():
-                    saliency_mapOMS = (net_attention(
-                        torch.tensor(vSliceOMS, dtype=torch.float32).to(config.DEVICE)
-                    ).cpu().numpy())*255
 
                 # ratio background to object events
                 dens_mask = torch.tensor(mask != 0.00, dtype=torch.bool)
@@ -184,8 +181,15 @@ for dir in dirs_events:
                 except ZeroDivisionError:
                     ratio = float('inf')  # or any other value that makes sense in your context
 
-                print('ratio is: '+ str(ratio))
+                # print('ratio is: '+ str(ratio))
                 if ratio < config.maxBackgroundRatio:
+                    # Compute saliency map for OMS
+                    vSliceOMS = np.expand_dims(np.stack((OMS_pos, OMS_neg)), 0)
+                    with torch.no_grad():
+                        saliency_mapOMS = (net_attention(
+                            torch.tensor(vSliceOMS, dtype=torch.float32).to(config.DEVICE)
+                        ).cpu().numpy()) * 255
+
                     # Visualisation
                     OMS = OMS_pos + OMS_neg
                     OMS[OMS != 0] = 1.0 * 255
@@ -198,21 +202,40 @@ for dir in dirs_events:
                             (saliency_mapOMS).astype(np.uint8), cv2.COLORMAP_JET))
                         cv2.waitKey(1)
 
-                    # Coordinates maximum value of saliency_mapOMS
-                    max_coords = np.unravel_index(np.argmax(saliency_mapOMS), saliency_mapOMS.shape)
-                    if mask[max_coords]!=0:
-                        max_to_object+=1
-                    plt.imsave( res_path+'evframes/' + f'evframe_{cnt}.png', spk_evframe.cpu().detach().numpy().astype(np.uint8) * 255, cmap='gray')
-                    # plt.imsave(res_path + f'mask_{i}.png', spike_gt.cpu().numpy(), cmap='gray')
-                    plt.imsave(res_path+'OMS/' + f'OMS_{cnt}.png', OMS, cmap='gray')
-                    plt.imsave(res_path+'salmaps/' + f'salmap_{cnt}.png', saliency_mapOMS, cmap='jet')
-                    print('frame: '+str(cnt))
-                    cnt += 1
+                    # Resize the saliency_mapOMS to match the dimensions of the mask
+                    saliency_mapOMS = cv2.resize(saliency_mapOMS, (mask.shape[1], mask.shape[0]))
+                    #need to extract the coordinates of the max value in the saliency map
+                    max_coords = np.unravel_index(np.argmax(saliency_mapOMS, axis=None), saliency_mapOMS.shape)
+
+                    max_saliency_mapOMS = torch.zeros_like(torch.tensor(saliency_mapOMS)).to(config.DEVICE)
+                    max_saliency_mapOMS[max_coords[0]-(bbox//2):max_coords[0]+(bbox//2), max_coords[1]-(bbox//2):max_coords[1]+(bbox//2)] = 1
+                    spk_acc = torch.zeros_like(torch.tensor(mask), dtype=torch.bool).to(config.DEVICE)
+                    torch.logical_and(torch.tensor(mask, dtype=torch.bool).to(config.DEVICE),
+                                      max_saliency_mapOMS, out=spk_acc)
+                    print(torch.sum(spk_acc).item())
+
+                    if torch.sum(spk_acc).item()!=0:
+                        max_to_object.append(1)
+                    else:
+                        max_to_object.append(0)
+
+                    # cv2.imshow('Mask', mask)
+                    # cv2.imshow('Saliency map OMS', cv2.applyColorMap(
+                    #     (saliency_mapOMS).astype(np.uint8), cv2.COLORMAP_JET))
+                    # cv2.waitKey(1)
+                    # plt.imsave( res_path+'evframes/' + f'evframe_{cnt}.png', spk_evframe.cpu().detach().numpy().astype(np.uint8) * 255, cmap='gray')
+                    # # plt.imsave(res_path + f'mask_{i}.png', spike_gt.cpu().numpy(), cmap='gray')
+                    # plt.imsave(res_path+'OMS/' + f'OMS_{cnt}.png', OMS, cmap='gray')
+                    # plt.imsave(res_path+'salmaps/' + f'salmap_{cnt}.png', saliency_mapOMS, cmap='jet')
+                    # print('frame: '+str(cnt))
                 i += 1
             time += time_wnd_frames
-        accuracy.append(max_to_object / cnt * 100)
-        with open(res_path + dir + '/' + seq_name + 'accuracy.pkl', 'wb') as f:
-            pickle.dump(accuracy, f)
-        print("accuracy "+ dir+'/'+seq_name+'/: '+ str())
+        if len(max_to_object)!=0:
+            dir_seq_acc = max_to_object.count(1) / len(max_to_object) * 100
+            accuracy.append(dir_seq_acc)
+        print("accuracy " + dir + '/' + seq_name + '/: ' + str(dir_seq_acc))
+    mean_acc = np.mean(accuracy)
+    print("accuracy " + dir + ': ' + str(mean_acc))
+
 
 
