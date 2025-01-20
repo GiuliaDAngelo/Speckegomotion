@@ -100,8 +100,8 @@ class AttentionModuleLevel(nn.Module):
         self.vm_filters_group = []
 
         # Calculate the sizes of the von Mises filters
-        self.border_VM_size = int(self.VM_radius * 2)
-        self.group_VM_size = int(self.VM_radius_group * 2.5)
+        self.border_VM_size = int(self.VM_radius * 1.1)#2)
+        self.group_VM_size = int(self.VM_radius_group * 1.5)#2.5)
         if self.border_VM_size % 2 == 0:
             self.border_VM_size += 1
         if self.group_VM_size % 2 == 0:
@@ -249,7 +249,7 @@ class AttentionModule(nn.Module):
                  vm_w_group=.2, vm_w2_group=.4, random_init=False, lif_tau=0.01):
         super(AttentionModule, self).__init__()
         # Initialize parameters for the attention module
-        self.pyramid_levels = 3
+        self.pyramid_levels = 1
         self.collapse_level = 0
         self.attention_levels = nn.ModuleList()
         self.group_pyramid = [None] * self.pyramid_levels

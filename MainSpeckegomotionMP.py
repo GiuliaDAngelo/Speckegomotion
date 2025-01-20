@@ -163,8 +163,8 @@ class Config:
 
     # Attention Parameters
     ATTENTION_PARAMS = {
-        'VM_radius': 8, #(R0)
-        'VM_radius_group': 15,
+        'VM_radius': 2, #(R0)
+        'VM_radius_group': 4,
         'num_ori': 4,
         'b_inh': 3, #(w)
         'g_inh': 1.0,
