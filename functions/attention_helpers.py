@@ -269,21 +269,23 @@ class AttentionModule(nn.Module):
         grid = grid.unsqueeze_(0).repeat(inp.shape[0], 1, 1, 1)
         return F.grid_sample(inp, grid)
 
-    def forward(self, inp):
+    def forward(self, inp: torch.Tensor):
         # Forward pass through the pyramid levels
-        for l in range(self.pyramid_levels):
+        for l in range(1, self.pyramid_levels):
             level_width, level_height = (np.array(inp.shape[-2:]) * (0.7071 ** l)).astype(int)
             level = self.rescale_input(inp, level_width, level_height)
             self.group_pyramid[l] = self.attention_levels[l](level)
 
         # Combine the results from all pyramid levels to create the final saliency map
-        saliency_map = self.rescale_input(self.group_pyramid[0].unsqueeze(0),
-                                          self.group_pyramid[self.collapse_level].shape[-2],
-                                          self.group_pyramid[self.collapse_level].shape[-1]).squeeze()
+        # saliency_map = self.rescale_input(self.group_pyramid[0].unsqueeze(0),
+        #                                   self.group_pyramid[self.collapse_level].shape[-2],
+        #                                   self.group_pyramid[self.collapse_level].shape[-1]).squeeze()
+
+        saliency_map = torch.zeros_like(inp).repeat(2,1,1)
         for l in range(1, self.pyramid_levels):
             saliency_map += self.rescale_input(self.group_pyramid[l].unsqueeze(0),
-                                               self.group_pyramid[self.collapse_level].shape[-2],
-                                               self.group_pyramid[self.collapse_level].shape[-1]).squeeze()
+                                               inp.shape[-2],
+                                               inp.shape[-1]).squeeze()
 
         saliency_map /= saliency_map.max()
         return saliency_map
