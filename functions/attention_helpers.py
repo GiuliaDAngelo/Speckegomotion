@@ -249,7 +249,7 @@ class AttentionModule(nn.Module):
                  vm_w_group=.2, vm_w2_group=.4, random_init=False, lif_tau=0.01):
         super(AttentionModule, self).__init__()
         # Initialize parameters for the attention module
-        self.pyramid_levels = 5
+        self.pyramid_levels = 3
         self.collapse_level = 0
         self.attention_levels = nn.ModuleList()
         self.group_pyramid = [None] * self.pyramid_levels
