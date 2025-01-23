@@ -1,4 +1,5 @@
 # --------------------------------------
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torch.fx.experimental.proxy_tensor import set_proxy_slot
@@ -163,8 +164,8 @@ class Config:
 
     # Attention Parameters
     ATTENTION_PARAMS = {
-        'VM_radius': 2, #(R0)
-        'VM_radius_group': 4,
+        'VM_radius': 8, #(R0)
+        'VM_radius_group': 15,
         'num_ori': 4,
         'b_inh': 3, #(w)
         'g_inh': 1.0,
@@ -327,16 +328,43 @@ if __name__ == "__main__":
                     ## need to pass it to a low pass filter, running mean and use the running mean to compute the pan tilt
 
                     # flags.pantilt.set()
+                    #
+                    # cv2.imshow('Events map', window_combined)
+                    # cv2.imshow('OMS map', OMS.cpu().numpy())
+                    # black_wind = np.zeros_like(saliency_map)
+                    # black_wind = np.stack([black_wind] * 3, axis = 2)
+                    # cv2.circle(black_wind, (salmax_coords[1], salmax_coords[0]), 6, (0, 1, 0), -1)
+                    # cv2.circle(black_wind, (64 - cmd[1], 64 - cmd[0]), 3, (0, 0, 1), -1)
+                    # cv2.imshow('Cmd Map', black_wind)
+                    # cv2.imshow('Saliency Map', saliency_map)
+                    # cv2.waitKey(1)
 
-                    cv2.imshow('Events map', window_combined)
-                    cv2.imshow('OMS map', OMS.cpu().numpy())
+                    combined = np.full((280, 280,3), fill_value=255, dtype=np.uint8)
+                    combined[1:129, 1:129, :] = window_combined[:,:,None].repeat(3, axis=2)
+                    combined[-121:, 1:122, :] = OMS.cpu().numpy()[:,:,None].repeat(3, axis=2)
+                    combined[-121:, -121:, :] = saliency_map[:, :, None].repeat(3, axis=2)*255
+                    # cv2.imshow('Events map', window_combined)
+                    # cv2.imshow('OMS map', OMS.cpu().numpy())
                     black_wind = np.zeros_like(saliency_map)
-                    black_wind = np.stack([black_wind] * 3, axis = 2)
+                    black_wind = np.stack([black_wind] * 3, axis=2)
                     cv2.circle(black_wind, (salmax_coords[1], salmax_coords[0]), 6, (0, 1, 0), -1)
                     cv2.circle(black_wind, (64 - cmd[1], 64 - cmd[0]), 3, (0, 0, 1), -1)
-                    cv2.imshow('Cmd Map', black_wind)
-                    cv2.imshow('Saliency Map', saliency_map)
+                    combined[1:122, -121:, :] = black_wind*255
+                    # cv2.imshow('Cmd Map', black_wind)
+                    # cv2.imshow('Saliency Map', saliency_map)
+
+                    cv2.putText(combined, 'Events map', (15, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5,
+                                color=(0, 255, 0), thickness=1)
+                    cv2.putText(combined, 'sOMS map', (15, 260), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5,
+                                color=(0, 255, 0), thickness=1)
+                    cv2.putText(combined, 'sFC coord', (175, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5,
+                                color=(0, 255, 0), thickness=1)
+                    cv2.putText(combined, 'Saliency map', (165, 260), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5,
+                                color=(0, 255, 0), thickness=1)
+                    cv2.imshow('', combined)
                     cv2.waitKey(1)
+
+
                 
                 else:
                     logger.info("No events, exiting...")
