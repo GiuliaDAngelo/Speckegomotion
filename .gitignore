@@ -181,3 +181,7 @@ samna.log
 *.npy
 *.png
 *.pkl
+
+images/
+oldattention/
+results_characterisationOMS/
