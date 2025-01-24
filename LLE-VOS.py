@@ -5,6 +5,7 @@ from functions.attention_helpers import AttentionModule
 import os
 from functions.OMS_helpers import initialize_oms, egomotion
 import matplotlib.pyplot as plt
+import natsort
 
 
 class Config:
@@ -38,17 +39,6 @@ class Config:
     DEVICE = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 
 
-def process_llevos_events(directory, dir, file):
-    evdata = np.load(directory + dir + '/' + file, allow_pickle=True)
-    ev = np.zeros(len(evdata), dtype=[('x', 'i2'), ('y', 'i2'), ('t', 'f8'), ('p', 'b')])
-    ev['x'] = evdata[:, 0].astype(int)
-    ev['y'] = evdata[:, 1].astype(int)
-    ev['t'] = evdata[:, 2]
-    ev['t'] = (ev['t'] - ev['t'][0])
-    ev['p'] = evdata[:, 3].astype(bool)
-    max_y = ev['y'].max() + 1
-    max_x = ev['x'].max() + 1
-    return ev, max_y, max_x
 
 
 def mkdirfold(path):
@@ -64,7 +54,7 @@ if __name__ == '__main__':
     events_dir = directory+ 'events/'
     annotations_dir = directory + 'annotations/'
     ev_frames_dir = directory + 'ev_frames/'
-    oms_dir = directory + 'osm/'
+    oms_dir = directory + 'oms/'
     attention_dir = directory + 'attention/'
 
 
@@ -80,85 +70,79 @@ if __name__ == '__main__':
     net_attention = AttentionModule(**config.ATTENTION_PARAMS)
     mean_accuracy = []
     for dir in dirs_events:
-        ev_files = [f for f in os.listdir(events_dir + dir) if f.endswith('.npy')]
         ann_files = [f for f in os.listdir(annotations_dir + dir) if f.endswith('.png')]
-        ev_files = sorted(ev_files)
         ann_files = sorted(ann_files)
-        len_ann_files = len(ann_files)
-        print(dir)
         accuracy = []
         bbox = 10
         max_to_object = []
         cnt = 0
 
-        mkdirfold(ev_frames_dir+dir)
         mkdirfold(oms_dir + dir)
         mkdirfold(attention_dir + dir)
 
-        for ev_file, ann_file in zip(ev_files, ann_files):
-            ev, max_y, max_x = process_llevos_events(events_dir, dir, ev_file)
-            window_pos = torch.zeros((max_y, max_x), dtype=torch.uint8)
-            window_neg = torch.zeros((max_y, max_x), dtype=torch.uint8)
+        for ann_file in ann_files:
             ann_img = cv2.imread(annotations_dir + dir + '/' + ann_file, cv2.IMREAD_GRAYSCALE)
-            for x, y, ts, p in ev:
-                if p:
-                    window_pos[y, x] = 255
+            ev_frames_pos = [f for f in os.listdir(ev_frames_dir + dir + '/pos/') if f.endswith('.png') and ann_file.split('.png')[0] in f]
+            ev_frames_pos = natsort.natsorted(ev_frames_pos)
+            ev_frames_neg = [f for f in os.listdir(ev_frames_dir + dir + '/neg/') if
+                             f.endswith('.png') and ann_file.split('.png')[0] in f]
+            ev_frames_neg = natsort.natsorted(ev_frames_neg)
+            for ev_frame_pos, ev_frame_neg in zip(ev_frames_pos, ev_frames_neg):
+                window_pos = torch.tensor(
+                    cv2.imread(ev_frames_dir + dir + '/pos/' + ev_frame_pos, cv2.IMREAD_GRAYSCALE), dtype=torch.uint8)
+                window_neg = torch.tensor(
+                    cv2.imread(ev_frames_dir + dir + '/neg/' + ev_frame_neg, cv2.IMREAD_GRAYSCALE), dtype=torch.uint8)
+                # compute egomotion
+                OMS_pos, indexes_pos = egomotion(window_pos, net_center, net_surround, config.DEVICE, window_pos.shape[0], window_pos.shape[1],
+                                                 config.OMS_PARAMS['threshold'])
+                OMS_neg, indexes_neg = egomotion(window_neg, net_center, net_surround, config.DEVICE, window_neg.shape[0], window_neg.shape[1],
+                                                 config.OMS_PARAMS['threshold'])
+                # compute attention
+                OMS_pos = OMS_pos.squeeze(0).squeeze(0).cpu().detach().numpy()
+                OMS_neg = OMS_neg.squeeze(0).squeeze(0).cpu().detach().numpy()
+                vSliceOMS = np.expand_dims(np.stack((OMS_pos, OMS_neg)), 0)
+                with torch.no_grad():
+                    saliency_mapOMS = (net_attention(
+                        torch.tensor(vSliceOMS, dtype=torch.float32).to(config.DEVICE)
+                    ).cpu().numpy()) * 255
+
+                # show event map and annotation map
+                # window = window_pos + window_neg
+                # window[window != 0] = 1.0 * 255
+                # cv2.imshow('Event neg map', window.cpu().numpy())
+                # cv2.imshow('Annotation map', ann_img)
+                # cv2.imshow('Saliency map OMS', cv2.applyColorMap(
+                #     (saliency_mapOMS).astype(np.uint8), cv2.COLORMAP_JET))
+                # Visualisation
+                OMS = OMS_pos + OMS_neg
+                OMS[OMS != 0] = 1.0 * 255
+                # cv2.imshow('OMS', OMS)
+                # cv2.waitKey(1)
+
+
+                # Resize the saliency_mapOMS to match the dimensions of the mask
+                saliency_mapOMS = cv2.resize(saliency_mapOMS, (ann_img.shape[1], ann_img.shape[0]))
+                # need to extract the coordinates of the max value in the saliency map
+                max_coords = np.unravel_index(np.argmax(saliency_mapOMS, axis=None), saliency_mapOMS.shape)
+
+                max_saliency_mapOMS = torch.zeros_like(torch.tensor(saliency_mapOMS)).to(config.DEVICE)
+                max_saliency_mapOMS[max_coords[0] - (bbox // 2):max_coords[0] + (bbox // 2),
+                max_coords[1] - (bbox // 2):max_coords[1] + (bbox // 2)] = 1
+                spk_acc = torch.zeros_like(torch.tensor(ann_img), dtype=torch.bool).to(config.DEVICE)
+                torch.logical_and(torch.tensor(ann_img, dtype=torch.bool).to(config.DEVICE),
+                                  max_saliency_mapOMS, out=spk_acc)
+                print(torch.sum(spk_acc).item())
+
+                if torch.sum(spk_acc).item() != 0:
+                    max_to_object.append(1)
                 else:
-                    window_neg[y, x] = 255
-            # compute egomotion
-            OMS_pos, indexes_pos = egomotion(window_pos, net_center, net_surround, config.DEVICE, max_y, max_x,
-                                             config.OMS_PARAMS['threshold'])
-            OMS_neg, indexes_neg = egomotion(window_neg, net_center, net_surround, config.DEVICE, max_y, max_x,
-                                             config.OMS_PARAMS['threshold'])
-            # compute attention
-            OMS_pos = OMS_pos.squeeze(0).squeeze(0).cpu().detach().numpy()
-            OMS_neg = OMS_neg.squeeze(0).squeeze(0).cpu().detach().numpy()
-            vSliceOMS = np.expand_dims(np.stack((OMS_pos, OMS_neg)), 0)
-            with torch.no_grad():
-                saliency_mapOMS = (net_attention(
-                    torch.tensor(vSliceOMS, dtype=torch.float32).to(config.DEVICE)
-                ).cpu().numpy()) * 255
+                    max_to_object.append(0)
 
+                plt.imsave(oms_dir + dir + f'/OMS_{cnt}.png', OMS, cmap='gray')
+                plt.imsave(attention_dir + dir + f'/salmap_{cnt}.png', saliency_mapOMS, cmap='jet')
 
-            # show event map and annotation map
-            window = window_pos + window_neg
-            window[window != 0] = 1.0 * 255
-            cv2.imshow('Event neg map', window.cpu().numpy())
-            cv2.imshow('Annotation map', ann_img)
-            cv2.imshow('Saliency map OMS', cv2.applyColorMap(
-                (saliency_mapOMS).astype(np.uint8), cv2.COLORMAP_JET))
-            # Visualisation
-            OMS = OMS_pos + OMS_neg
-            OMS[OMS != 0] = 1.0 * 255
-            cv2.imshow('OMS', OMS)
-            cv2.waitKey(1)
-
-
-            # Resize the saliency_mapOMS to match the dimensions of the mask
-            saliency_mapOMS = cv2.resize(saliency_mapOMS, (ann_img.shape[1], ann_img.shape[0]))
-            # need to extract the coordinates of the max value in the saliency map
-            max_coords = np.unravel_index(np.argmax(saliency_mapOMS, axis=None), saliency_mapOMS.shape)
-
-            max_saliency_mapOMS = torch.zeros_like(torch.tensor(saliency_mapOMS)).to(config.DEVICE)
-            max_saliency_mapOMS[max_coords[0] - (bbox // 2):max_coords[0] + (bbox // 2),
-            max_coords[1] - (bbox // 2):max_coords[1] + (bbox // 2)] = 1
-            spk_acc = torch.zeros_like(torch.tensor(ann_img), dtype=torch.bool).to(config.DEVICE)
-            torch.logical_and(torch.tensor(ann_img, dtype=torch.bool).to(config.DEVICE),
-                              max_saliency_mapOMS, out=spk_acc)
-            print(torch.sum(spk_acc).item())
-
-            if torch.sum(spk_acc).item() != 0:
-                max_to_object.append(1)
-            else:
-                max_to_object.append(0)
-
-            plt.imsave(ev_frames_dir + dir + f'/evframe_{cnt}.png', window, cmap='gray')
-            plt.imsave(oms_dir + dir + f'/OMS_{cnt}.png', OMS, cmap='gray')
-            plt.imsave(attention_dir + dir + f'/salmap_{cnt}.png', saliency_mapOMS, cmap='jet')
-
-            print('frame: '+str(cnt))
-            window = torch.zeros((max_y, max_x), dtype=torch.uint8)
-            cnt+=1
+                print('frame: '+str(cnt))
+                cnt+=1
         if len(max_to_object)!=0:
             dir_seq_acc = max_to_object.count(1) / len(max_to_object) * 100
         with open(os.path.join(attention_dir + dir, f'{dir}_accuracy.txt'), 'w') as f:
