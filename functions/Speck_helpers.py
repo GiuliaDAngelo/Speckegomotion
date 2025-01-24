@@ -10,7 +10,7 @@ import random
 
 
 
-def fetch_events(sink, window_pos, window_neg, drop_rate, events_lock, numevs):
+def fetch_events(sink, window_pos, window_neg, drop_rate, events_lock, numevs, polarities):
     while True:
         events = sink.get_events_blocking(1000)
         if events:
@@ -18,13 +18,17 @@ def fetch_events(sink, window_pos, window_neg, drop_rate, events_lock, numevs):
             with events_lock:
                 if filtered_events:
                     for event in filtered_events:
-                        if event.p == 1:
-                            window_pos[event.y, event.x] = 255
+                        if polarities:
+                            if event.p == 1:
+                                window_pos[event.y, event.x] = 255
+                            else:
+                                window_neg[event.y, event.x] = 255
                         else:
-                            window_neg[event.y, event.x] = 255
+                            window_pos[event.y, event.x] = 255
+
                     numevs[0] += len(filtered_events)
 
-def Specksetup(resolution, drop_rate):
+def Specksetup(resolution, drop_rate, polarities=False):
     # List all connected devices
     device_map = sio.get_device_map()
     print(device_map)
@@ -48,7 +52,7 @@ def Specksetup(resolution, drop_rate):
     numevs = [0]  # Use a list to allow modification within the thread
     events_lock = threading.Lock()
     # Initialise fetching events
-    event_thread = threading.Thread(target=fetch_events, args=(sink, window_pos, window_neg, drop_rate, events_lock, numevs))
+    event_thread = threading.Thread(target=fetch_events, args=(sink, window_pos, window_neg, drop_rate, events_lock, numevs, polarities))
     event_thread.daemon = True
     event_thread.start()
     return sink, window_pos, window_neg, numevs, events_lock
