@@ -17,7 +17,7 @@ class Config:
         'size_krn_surround': 8,
         'sigma_surround': 4,
         'threshold': 0.80,
-        'tau_memOMS': 0.1,
+        'tau_memOMS': 10,
         'sc': 1,
         'ss': 1
     }
@@ -27,13 +27,19 @@ class Config:
     SAVE_RES = True
     CHARACTERISATION_FLAG = True
     EXP = 'objego'
+    # 003 - 001 #
+    # 005 - 001 #
+    # 005 - 005 #
+    # 009 - 001 #
+    # 009 - 005 #
+
     SF = 0.3
     SF_SMALL = 3
-    SPEED = 0.01
-    SMALL_SPEED = 0.09
+    SPEED = 0.09
+    SMALL_SPEED = 0.05
     DURATION = 2
     FPS_VIDEO = 60.0
-    BASE_PATH = '/Users/giuliadangelo/workspace/code/IEBCS/data/video/stimuli/'
+    BASE_PATH = '/Users/giuliadangelo/workspace/code/IEBCS/data/video/speedstimuli/'
     DEVICE = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 
 
