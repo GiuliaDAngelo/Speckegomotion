@@ -3,41 +3,40 @@ import cv2
 import numpy as np
 import os
 
-def createfld(respath, namefld):
+def createfld(path):
     # Check if the folder exists, and create it if it doesn't
-    if not os.path.exists(respath+namefld):
-        os.makedirs(respath+namefld)
+    if not os.path.exists(path):
+        os.makedirs(path)
         print('Folder created')
     else:
         print('Folder already exists')
 
-
-# # Paths
-# exp =  'objego'
-# exp =  'ego1'
-# exp =  'ego3'
-# exp =  'ego4'
-# exp =  'ego5'
-# exp =  'ego8'
+# Paths
+exp =  'objego'
+# exp =  'ego'
 # exp =  'onlyobj'
-# exp = '1'
-# exp = '02'
-# exp = '4'
-exp = 'invertedspeeds'
+
+one_grat = False
+#Parameters stimuli
+sf = 0.3  # spatial frequency [0.2, 1, 4]
+sf_small = 3
+speed = 0.09 # speed in cycles per frame
+small_speed = 0.05
+duration = 16  # duration in seconds
 
 
-respath = 'data/stimuli/'+exp+'/'
+name_exp = exp+'sf'+str(sf)+'sp'+str(speed)+'sf'+str(sf_small)+'sp'+str(small_speed)
+name_exp = name_exp.replace(".", "")
+
+respath = '/Users/giuliadangelo/workspace/code/IEBCS/data/video/speedstimuli/'+name_exp+'/'
 createfld(respath)
-
 
 # Create a window with larger dimensions to ensure stimuli fit
 square = [350, 350]  # Window size
-one_grat = False
+
 mywin = visual.Window(square, monitor="testMonitor", units="deg")
 
 # Create some stimuli
-sf = 0.3  # spatial frequency
-sf_small = 3
 grating = visual.GratingStim(win=mywin, mask='circle', size=9, pos=[0, 0], sf=sf)
 grating_small = visual.GratingStim(win=mywin, mask='circle', size=2, pos=[0, 0], sf=sf_small)
 
@@ -52,21 +51,22 @@ x_start = int((mywin.size[0] - crop_width) // 2)
 y_start = int((mywin.size[1] - crop_height) // 2)
 
 # Draw the stimuli and update the window
-duration = 2  # duration in seconds
 clock = core.Clock()
 frames = []
 
 if one_grat:
     while clock.getTime() < duration:
-        grating.setPhase(0.05, '+')  # advance phase
+        if exp == 'onlyobj':
+            grating = grating_small
+            grating.setPhase(small_speed, '+')
+        else:
+            grating.setPhase(speed, '+')  # advance phase
         grating.draw()
         mywin.flip()
         frame = mywin.getMovieFrame(buffer='front')  # Capture frame from front buffer
         frames.append(frame)
         event.clearEvents()
 else:
-    small_speed = 0.01
-    speed = 0.09
     while clock.getTime() < duration:
         grating.setPhase(speed, '+')  # advance phase
         grating_small.setPhase(small_speed, '+')
@@ -78,8 +78,9 @@ else:
         event.clearEvents()
 
 # Save frames as a video using OpenCV
-output_file = "stimuli_video.mp4"
-fps = 30
+os.chdir(respath)
+output_file = name_exp+".mp4"
+fps = 1000
 
 # Define the codec and create VideoWriter object
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Use 'mp4v' for .mp4 format
