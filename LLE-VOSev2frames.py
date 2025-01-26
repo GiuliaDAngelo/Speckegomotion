@@ -48,23 +48,28 @@ if __name__ == '__main__':
         cnt = 1
         pos_dir = ev_frames_dir+dir+'/pos/'
         neg_dir = ev_frames_dir + dir + '/neg/'
+        wnd_dir = ev_frames_dir + dir + '/wnd/'
         mkdirfold(pos_dir)
         mkdirfold(neg_dir)
+        mkdirfold(wnd_dir)
 
         for ev_file in ev_files:
             inner_cnt = 0
             ev, max_y, max_x = process_llevos_events(events_dir, dir, ev_file)
             window_pos = torch.zeros((max_y, max_x), dtype=torch.uint8)
             window_neg = torch.zeros((max_y, max_x), dtype=torch.uint8)
+            window = torch.zeros((max_y, max_x), dtype=torch.uint8)
 
             wnd = 50000
             t = wnd
             ev['t'] = ev['t']  - ev['t'][0]
             windows_pos = []
             windows_neg = []
+            windows = []
 
             for x, y, ts, p in ev:
                 if ts<=t:
+                    window[y, x] = 255
                     if p:
                         window_pos[y, x] = 255
                     else:
@@ -72,15 +77,18 @@ if __name__ == '__main__':
                 else:
                     windows_pos.append(window_pos)
                     windows_neg.append(window_neg)
+                    windows.append(window)
                     # cv2.imshow('Event pos map', window_pos.cpu().numpy())
                     # cv2.imshow('Event neg map', window_neg.cpu().numpy())
 
                     plt.imsave(pos_dir + f'/{cnt:05}_{inner_cnt}.png', window_pos, cmap='gray')
                     plt.imsave(neg_dir + f'/{cnt:05}_{inner_cnt}.png', window_neg, cmap='gray')
+                    plt.imsave(wnd_dir + f'/{cnt:05}_{inner_cnt}.png', window, cmap='gray')
 
                     cv2.waitKey(1)
                     window_pos = torch.zeros((max_y, max_x), dtype=torch.uint8)
                     window_neg = torch.zeros((max_y, max_x), dtype=torch.uint8)
+                    window = torch.zeros((max_y, max_x), dtype=torch.uint8)
                     t+=wnd
                     inner_cnt+=1
             cnt+=1
