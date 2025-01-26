@@ -25,7 +25,7 @@ tilt_range = (-400, 400)  # Replace with actual tilt range of your device if dif
 # Function to send a command to the serial device
 def send_command(ser, command):
     ser.write(command.encode('utf-8'))
-    time.sleep(0.1)  # Small delay to allow the device to process the command
+    time.sleep(1)  # Small delay to allow the device to process the command
 
 random_mov = 20
 
