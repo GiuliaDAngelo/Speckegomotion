@@ -1,10 +1,6 @@
 # --------------------------------------
-import matplotlib.pyplot as plt
-import numpy as np
-import torch
-from torch.fx.experimental.proxy_tensor import set_proxy_slot
 
-from Speckegolayer_functions import *
+from functions.Speck_helpers import *
 
 # --------------------------------------
 from configSpeckmain import *
@@ -16,13 +12,11 @@ from controller.helper import run_controller
 import serial
 
 # --------------------------------------
-import matplotlib
 
 # --------------------------------------
 from datetime import datetime
 
 # --------------------------------------
-from multiprocessing import Process
 
 # # --------------------------------------
 # import pyqtgraph as pg
@@ -45,6 +39,10 @@ from functions.attention_helpers import *
 import matplotlib
 #tkagg
 matplotlib.use('TkAgg')
+
+
+global serial_port, baud_rate, ser
+
 
 @dataclass
 class Flags:
@@ -97,7 +95,7 @@ def perform_attention_with_pan_tilt(
         #     break
 
         # cmds values are between -1 and 1
-        alpha=1.
+        alpha=2.2
         cmd[:] = run_controller(
                 np.array([salmax_coords[0], salmax_coords[1]]),
                 np.array([resolution[1] // 2, resolution[0] // 2]),
@@ -108,8 +106,8 @@ def perform_attention_with_pan_tilt(
 
         # delta pan and tilt to obtain an output between -1 and 1
         # convert the -1, 1 to actual degrees of pan and tilt
-        delta_pan = int(cmd[1] // degrees_per_pos)
-        delta_tilt =  int(cmd[0]// degrees_per_pos)
+        delta_pan = int(cmd[1]/degrees_per_pos/alpha/2)
+        delta_tilt =  int(cmd[0]/degrees_per_pos/alpha/2)
 
         #make a check if pan_angle and tilt_angle are within the range
         pan_angle = np.clip(delta_pan, pan_range[0], pan_range[1]).astype(int)
@@ -122,16 +120,22 @@ def perform_attention_with_pan_tilt(
             # time.sleep(0.5)
             pass
         else:
-            with serial.Serial(serial_port, baud_rate, timeout=1) as ser:
-                pan_command = f'PP{pan_angle}\n'
-                tilt_command = f'TP{tilt_angle}\n'
-                # Send the pan and tilt commands
-                # send_command(ser, f'PU\n')
-                send_command(ser, pan_command)
-                # send_command(ser, f'TU\n')
-                send_command(ser, tilt_command)
-                send_command(ser, f'A\n')
-                response = ser.readline().decode('utf-8').strip()
+            # with serial.Serial(serial_port, baud_rate, timeout=1) as ser:
+            pan_command = f'PP{pan_angle}\n'
+            tilt_command = f'TP{tilt_angle}\n'
+            # Send the pan and tilt commands
+            # send_command(ser, f'PU\n')
+            send_command(ser, pan_command)
+            # send_command(ser, f'TU\n')
+            send_command(ser, tilt_command)
+            send_command(ser, f'A\n')
+            response = ser.readline().decode('utf-8').strip()
+            # microsaccades = 10
+            # rnd = np.random.uniform(-60, 60, microsaccades).astype(np.int32)
+            # for i in range(microsaccades):
+            #     send_command(ser, f'PP{pan_angle+rnd[i]}\n')
+            #     send_command(ser, f'TP{tilt_angle+rnd[i]}\n')
+
                 # time.sleep(0.1)
             if response:
                 print(f"Response from device: {response}")
@@ -164,8 +168,8 @@ class Config:
 
     # Attention Parameters
     ATTENTION_PARAMS = {
-        'VM_radius': 8, #(R0)
-        'VM_radius_group': 15,
+        'VM_radius': 4, #(R0)
+        'VM_radius_group': 8,
         'num_ori': 4,
         'b_inh': 3, #(w)
         'g_inh': 1.0,
@@ -199,44 +203,40 @@ if __name__ == "__main__":
     # Define the serial port and settings
     serial_port = "/dev/tty.usbserial-FTGZO55F"
     baud_rate = 9600
+    ser = None
+    if ser is None:
+        ser = serial.Serial(serial_port, baud_rate, timeout=1)
 
-    #### pan-tilt range pan: -3090/3090 - tilt:-907 and 604
 
-    degrees_per_pos = 0.02572
-    # pan_fov_range = 30 # degrees as per humans
-    # degrees_per_pixels = pan_fov_range / 128
-    # # steps_per_pixel = degrees_per_pixels / degrees_per_pos
-    # # to obtain the positions for visual field of teh camera
-    #
-    tilt_fov_range_up = 10 # degrees as per humans (should be 20)
-    tilt_fov_range_down = 10  # degrees as per humans (should be 47)
+    degrees_per_pos = 0.02572  #one position (92.5714 seconds arc) is 92.5714 sec arc * 0.0002778° = 0.02572°
+    focal_length = 1.7 #mm
+    sensor_size_hor =  5.12 #mm 1/2.5" sensor size - A 1/2.5" sensor typically has a diagonal size of approximately 5.76 mm and a horizontal size of about 4.6 mm.
 
-    # Define pan and tilt range values
-    # pan_range = np.array([
-    #     -((pan_fov_range/2) // degrees_per_pos),
-    #     ((pan_fov_range/2) // degrees_per_pos),
-    # ])  # Replace with actual pan range of your device if different
-    pan_range = np.array([-583,583])
-    # tilt_range = np.array([
-    #     -(tilt_fov_range_down // degrees_per_pos),
-    #     (tilt_fov_range_up // degrees_per_pos),
-    # ])  # Replace with actual tilt range of your device if different
-    tilt_range = np.array([-388, 388])
+    field_of_view = 2 * np.arctan(sensor_size_hor / (2 * focal_length))
+    afield_of_view = np.degrees(field_of_view)
+    ptrange = int(afield_of_view / degrees_per_pos) // 2
 
-    with serial.Serial(serial_port, baud_rate, timeout=1) as ser:
-        pan_command = f'PP{0}\n'
-        tilt_command = f'TP{0}\n'
-        # Send the pan and tilt commands
-        # send_command(ser, f'PU\n')
-        send_command(ser, pan_command)
-        # send_command(ser, f'TU\n')
-        send_command(ser, tilt_command)
-        send_command(ser, f'A\n')
-        response = ser.readline().decode('utf-8').strip()
+    pan_range_vision_sensor = np.array([-ptrange,ptrange])
+    tilt_range_vision_sensor = np.array([-ptrange, ptrange])
+
+    pan_range = np.clip(pan_range_vision_sensor, -3090, 3090)
+    tilt_range = np.clip(tilt_range_vision_sensor, -907, 604)
+
+
+    # with serial.Serial(serial_port, baud_rate, timeout=1) as ser:
+    pan_command = f'PP{0}\n'
+    tilt_command = f'TP{0}\n'
+    # Send the pan and tilt commands
+    # send_command(ser, f'PU\n')
+    send_command(ser, pan_command)
+    # send_command(ser, f'TU\n')
+    send_command(ser, tilt_command)
+    send_command(ser, f'A\n')
+    response = ser.readline().decode('utf-8').strip()
 
     ##### Speck initialisation for the sink #####
     # Set the Speck and sink events
-    sink, window_pos, window_neg, numevs, events_lock = Specksetup()
+    sink, window, window_pos, window_neg, numevs, events_lock = Specksetup()
 
     # A switch for emulating pan/tilt motion
     showstats = False
@@ -273,17 +273,15 @@ if __name__ == "__main__":
     while not flags.halt.is_set():
         current_time = datetime.now()
         logger.info("Processing...")
-
         try:
-
             while True:
-                # logger.info("Waiting for attention to finish..."
+                logger.info("Waiting for attention to finish...")
                 if flags.halt.is_set():
                     break
                 # logger.info("Accumulating events...")
                 # time.sleep(random.gauss(1, 0.05))
                 
-                events = sink.get_events_blocking(2000)  # ms
+                events = sink.get_events_blocking(1000)  # ms
                 counter += 1
                 if events:
                     with events_lock:
@@ -348,7 +346,8 @@ if __name__ == "__main__":
                     black_wind = np.zeros_like(saliency_map)
                     black_wind = np.stack([black_wind] * 3, axis=2)
                     cv2.circle(black_wind, (salmax_coords[1], salmax_coords[0]), 6, (0, 1, 0), -1)
-                    cv2.circle(black_wind, (64 - cmd[1], 64 - cmd[0]), 3, (0, 0, 1), -1)
+                    cv2.circle(black_wind, (64, 64), 3, (0, 0, 1), -1)
+                    cv2.circle(black_wind, (64 - cmd[1], 64 - cmd[0]), 3, (0, 1, 1), -1)
                     combined[1:122, -121:, :] = black_wind*255
                     # cv2.imshow('Cmd Map', black_wind)
                     # cv2.imshow('Saliency Map', saliency_map)
