@@ -16,7 +16,7 @@ class NengoController:
             target_pan=64,
             target_tilt=64,
             depth=0.0,
-            simulator_dt=0.01,
+            simulator_dt=0.01, # 0.01
             ):
         self.k_pan = k_pan
         self.k_tilt = k_tilt
@@ -48,7 +48,7 @@ class NengoController:
             ## maximum, and maintain a fixed distance for depth.
 
             ## proportional error on tilt
-            tilt_err_prop = nengo.Ensemble(n_neurons=50, dimensions=1, radius = 300)
+            tilt_err_prop = nengo.Ensemble(n_neurons=50, dimensions=1, radius = 300) #neurons were 50
             nengo.Connection(
                     tilt_target, 
                     tilt_err_prop,
@@ -61,7 +61,6 @@ class NengoController:
                 )
             ## proportional error on pan
 
-# where is pan_err_pop defined? and tilt_err_pop?
 
             ## The population should encode
             ## k_pan_prop * (pan - target_pan)
@@ -97,7 +96,7 @@ class NengoController:
         ## Unless otherwise specified the nengo simulator uses a 1msec
         ## time step and the probe data is indexed in milliseconds
         ## TODO: determine optimal time window size, if not 10 msec
-        data_tilt = np.mean(self.sim.data[self.p_tilt][-10:])
-        data_pan = np.mean(self.sim.data[self.p_pan][-10:])
+        data_tilt = -np.mean(self.sim.data[self.p_tilt][-10:])
+        data_pan = -np.mean(self.sim.data[self.p_pan][-10:])
 
-        return (data_pan, data_tilt)
+        return (data_tilt,data_pan)

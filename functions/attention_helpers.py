@@ -280,6 +280,8 @@ class AttentionModule(nn.Module):
         saliency_map = self.rescale_input(self.group_pyramid[0].unsqueeze(0),
                                           self.group_pyramid[self.collapse_level].shape[-2],
                                           self.group_pyramid[self.collapse_level].shape[-1]).squeeze()
+        # Combine the results from all pyramid levels to create the final saliency map
+        # saliency_map = torch.zeros(121,121)
 
         for l in range(1, self.pyramid_levels):
             saliency_map += self.rescale_input(self.group_pyramid[l].unsqueeze(0),
