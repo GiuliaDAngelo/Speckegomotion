@@ -1,6 +1,9 @@
 import os
 
 
+### good results : 2, 11, 64, 67, 70
+### bad results : 25, 26, 31, 47, 55, 58
+
 if __name__ == '__main__':
 
     directory = '/Users/giuliadangelo/workspace/data/DATASETs/EVIMO2LowightChallengingConditions/'
