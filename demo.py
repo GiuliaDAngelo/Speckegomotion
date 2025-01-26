@@ -160,11 +160,11 @@ def visualiser(dxs, dys):
 
     cv2.putText(combined, 'Events map', (10, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5,
                 color=(0, 255, 0), thickness=1)
-    cv2.putText(combined, 'Saliency map', (10, 260), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5,
+    cv2.putText(combined, 'Saliency map', (8, 270), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5,
                 color=(0, 255, 0), thickness=1)
     cv2.putText(combined, 'sOMS map', (175, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5,
                 color=(0, 255, 0), thickness=1)
-    cv2.putText(combined, 'sFC coord', (165, 260), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5,
+    cv2.putText(combined, 'sFC coord', (170, 270), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5,
                 color=(0, 255, 0), thickness=1)
     cv2.imshow('', combined)
     cv2.waitKey(1)
@@ -234,8 +234,8 @@ if __name__ == "__main__":
     salmax_coords = np.zeros((2,), dtype=np.int32)
     cmd = np.zeros((2,), dtype=np.int32)
     counter = 0
-    trials = 500
-    end_trials = trials * 100
+    trials = 5300
+    end_trials = trials * 10
 
     # Starting attention thread
     attention_thread = threading.Thread(
