@@ -32,7 +32,7 @@ class Config:
         'vm_w_group': 0.2,
         'vm_w2_group': 0.4,
         'random_init': False,
-        'lif_tau': 0.3
+        'lif_tau': 0.1
     }
     SHOWIMGS = False
     maxBackgroundRatio = 2
@@ -75,7 +75,7 @@ if __name__ == '__main__':
         accuracy = []
         bbox = 10
         max_to_object = []
-        cnt = 0
+        cnt = 1
 
         mkdirfold(oms_dir + dir)
         mkdirfold(attention_dir + dir)
@@ -149,4 +149,5 @@ if __name__ == '__main__':
             f.write(f"accuracy {dir}: {dir_seq_acc}\n")
         print("accuracy " + dir + ': ' + str(dir_seq_acc))
         mean_accuracy.append(dir_seq_acc)
-    print('total accuracy : ' + str(np.mean(mean_accuracy)))
+    print('total accuracy mean : ' + str(np.mean(mean_accuracy)))
+    print('total accuracy std : ' + str(np.std(mean_accuracy)))

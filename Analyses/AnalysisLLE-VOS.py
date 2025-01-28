@@ -1,4 +1,5 @@
 import os
+import numpy as np
 
 
 ### good results : 2, 11, 64, 67, 70
@@ -22,4 +23,5 @@ if __name__ == '__main__':
                 acc = round(float(text.split(':')[1].strip()),2)
                 accuracies.append(acc)
                 print(text)
-    print('Mean accuracy:', round(sum(accuracies)/len(accuracies),2))
+    print('Mean accuracy:', round(np.mean(accuracies),2))
+    print('std accuracy:', round(np.std(accuracies), 2))

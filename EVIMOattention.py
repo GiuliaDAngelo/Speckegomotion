@@ -22,7 +22,7 @@ class Config:
         'sigma_center': 1,
         'size_krn_surround': 8,
         'sigma_surround': 4,
-        'threshold': 0.80,
+        'threshold': 0.86,
         'tau_memOMS': 0.02,
         'sc': 1,
         'ss': 1
@@ -40,10 +40,10 @@ class Config:
         'vm_w_group': 0.2,
         'vm_w2_group': 0.4,
         'random_init': False,
-        'lif_tau': 0.3
+        'lif_tau': 0.1
     }
     SHOWIMGS = False
-    maxBackgroundRatio = 2
+    maxBackgroundRatio = 1.5
     DEVICE = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 
 
@@ -112,7 +112,8 @@ dirs_events = [d for d in os.listdir(evpath) if os.path.isdir(os.path.join(evpat
 
 config = Config()
 for dir in dirs_events:
-
+    if dir == 'floor':
+        continue
     npz = '/npz/'
     #look at files in the dir
     files = [f for f in os.listdir(evpath+dir+npz) if f.endswith('.npz')]
@@ -235,7 +236,9 @@ for dir in dirs_events:
             accuracy.append(dir_seq_acc)
         print("accuracy " + dir + '/' + seq_name + '/: ' + str(dir_seq_acc))
     mean_acc = np.mean(accuracy)
+    std_acc = np.std(accuracy)
     print("accuracy " + dir + ': ' + str(mean_acc))
+    print("std " + dir + ': ' + str(std_acc))
 
 
 
