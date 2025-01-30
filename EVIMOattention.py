@@ -22,7 +22,7 @@ class Config:
         'sigma_center': 1,
         'size_krn_surround': 8,
         'sigma_surround': 4,
-        'threshold': 0.86,
+        'threshold': 0.80,
         'tau_memOMS': 0.02,
         'sc': 1,
         'ss': 1
@@ -43,7 +43,7 @@ class Config:
         'lif_tau': 0.1
     }
     SHOWIMGS = False
-    maxBackgroundRatio = 1.5
+    maxBackgroundRatio = 2
     DEVICE = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 
 
@@ -112,14 +112,14 @@ dirs_events = [d for d in os.listdir(evpath) if os.path.isdir(os.path.join(evpat
 
 config = Config()
 for dir in dirs_events:
-    if dir == 'floor':
+    if dir == 'wall' or dir == 'box' or dir == 'fast' or dir == 'table' or dir == 'tabletop':
         continue
     npz = '/npz/'
     #look at files in the dir
     files = [f for f in os.listdir(evpath+dir+npz) if f.endswith('.npz')]
     files = sorted(files)
     accuracy = []
-    bbox = 10
+    bbox = 8
     for file in files:
         seq_name = file.split('.')[0]
         maskfile = seq_name +'_masks.npy'

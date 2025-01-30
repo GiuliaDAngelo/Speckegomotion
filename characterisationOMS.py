@@ -17,7 +17,7 @@ class Config:
         'size_krn_surround': 8,
         'sigma_surround': 4,
         'threshold': 0.80,
-        'tau_memOMS': 10,
+        'tau_memOMS': 0.01,
         'sc': 1,
         'ss': 1
     }
@@ -35,8 +35,8 @@ class Config:
 
     SF = 0.3
     SF_SMALL = 3
-    SPEED = 0.09
-    SMALL_SPEED = 0.05
+    SPEED = 0.09 # 0.01 - 0.03 - 0.05 - 0.09
+    SMALL_SPEED = 0.01
     DURATION = 2
     FPS_VIDEO = 60.0
     BASE_PATH = '/Users/giuliadangelo/workspace/code/IEBCS/data/video/speedstimuli/'
@@ -50,7 +50,7 @@ def setup_paths(config: Config):
         exp_kernel = f"krncenter{config.OMS_PARAMS['size_krn_center']}sigcenter{config.OMS_PARAMS['sigma_center']}krnsurround{config.OMS_PARAMS['size_krn_surround']}sigsurround{config.OMS_PARAMS['sigma_surround']}"
     else:
         exp_kernel = ""
-    respath = f"results/OMS/{name_exp}{exp_kernel}/"
+    respath = f"results/OMS/{name_exp}{exp_kernel}{config.OMS_PARAMS['tau_memOMS']}/"
     evdata_path = "ev_100_10_100_300_0.3_0.01.dat"
     evpath = f"{config.BASE_PATH}{name_exp}/{name_exp}{evdata_path}.npy"
     return respath, evpath
