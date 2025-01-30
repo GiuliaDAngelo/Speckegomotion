@@ -112,7 +112,7 @@ dirs_events = [d for d in os.listdir(evpath) if os.path.isdir(os.path.join(evpat
 
 config = Config()
 for dir in dirs_events:
-    if dir == 'wall' or dir == 'box' or dir == 'fast' or dir == 'table' or dir == 'tabletop':
+    if dir == 'wall' or dir == 'box' or dir == 'fast' or dir == 'floor' or dir == 'tabletop':
         continue
     npz = '/npz/'
     #look at files in the dir
