@@ -25,7 +25,7 @@ Giulia D’Angelo – [giulia.dangelo@fel.cvut.cz](mailto:giulia.dangelo@fel.cvu
 
 ## YouTube Video Demonstration:
 
-[![Watch the video](https://www.youtube.com/watch?v=RupppThmGpI&ab_channel=GiuliaD%27Angelo)](https://www.youtube.com/watch?v=RupppThmGpI&ab_channel=GiuliaD%27Angelo)
+[![Wandering Around: A Bioinspired Approach to Visual Attention through Object Motion Sensitivity](https://img.youtube.com/vi/t8K4ar_Vpd4/0.jpg)](https://youtu.be/t8K4ar_Vpd4)
 
 
 ## Abstract
