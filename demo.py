@@ -68,7 +68,8 @@ class Config:
         'fltr_resize_perc' : [2, 2],
         'num_pyr' : 3,
         'tau_mem': 0.3,
-        'stride':1
+        'stride':1,
+        'out_ch':1
     }
 
 flags = Flags()

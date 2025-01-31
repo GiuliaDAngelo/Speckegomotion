@@ -45,7 +45,7 @@ def initialise_attention(device, ATTENTION_PARAMS):
         ATTENTION_PARAMS['rho'], ATTENTION_PARAMS['r0'], ATTENTION_PARAMS['thick'],
         ATTENTION_PARAMS['offset'], ATTENTION_PARAMS['fltr_resize_perc']
     )
-    net_attention = net_def(vm_kernels, ATTENTION_PARAMS['tau_mem'], vm_kernels.size()[0], vm_kernels.size()[0],
+    net_attention = net_def(vm_kernels, ATTENTION_PARAMS['tau_mem'], 1, ATTENTION_PARAMS['out_ch'],
                          ATTENTION_PARAMS['size_krn'], device, ATTENTION_PARAMS['stride'])
 
     return net_attention
