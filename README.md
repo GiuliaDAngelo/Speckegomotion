@@ -1,73 +1,39 @@
-# Egomotion Suppression for Event-Based Cameras
+# Wandering Around: A Bioinspired Approach to Foveation Through Object Motion Sensitivity
 
-**Contributors**:  
-- Giulia D'Angelo  
-- Alexander Hadijanov
+**Authors:**  
+Giulia D’Angelo<sup>1,*</sup>, Victoria Clerico<sup>2</sup>, Chiara Bartolozzi<sup>3</sup>, Matej Hoffmann<sup>1</sup>, P. Michael Furlong<sup>4</sup>, Alexander Hadjiivanov<sup>5</sup>  
+
+---
+
+**Affiliations:**  
+1. Department of Cybernetics, Faculty of Electrical Engineering, Czech Technical University, Prague, Czech Republic  
+2. IBM Research Europe, Zurich, Switzerland  
+3. Event-Driven Perception for Robotics, Italian Institute of Technology, Genoa, Italy  
+4. National Research Council of Canada & Systems Design Engineering, University of Waterloo, Canada  
+5. The Netherlands eScience Center, Netherlands  
+
+---
+
+**Corresponding Author:**  
+Giulia D’Angelo – [giulia.dangelo@fel.cvut.cz](mailto:giulia.dangelo@fel.cvut.cz)
 
 
-![pipeline](https://github.com/GiuliaDAngelo/Speckegomotion/blob/main/images/egomotion.png)
+
+![pipeline](pipeline.png)
+
+---
+
+## YouTube Video Demonstration:
+
+[![Wandering Around: A Bioinspired Approach to Visual Attention through Object Motion Sensitivity](https://img.youtube.com/vi/t8K4ar_Vpd4/0.jpg)](https://youtu.be/t8K4ar_Vpd4)
 
 
-## Overview
+## Abstract
 
-Egomotion refers to the movement of a camera relative to its environment. 
-In the context of event-based cameras, which capture changes in pixel intensity rather than full frames, egomotion introduces significant noise. 
-This noise can obscure the detection of relevant motion signals in the scene, such as moving objects, making it difficult to differentiate between background motion caused by the camera's movement and dynamic objects of interest.
-
-### The Challenge of Egomotion Suppression
-
-Event-based cameras operate asynchronously, capturing the dynamic range of changes at a very high temporal resolution. However, when a camera moves, it generates a large number of events due to changes in the scene's background. This overwhelming number of background events, resulting from egomotion, makes it hard to isolate the actual motion of objects.
-
-### Key Objectives
-
-The goal of egomotion suppression is to:
-1. **Remove or reduce background noise** caused by camera movement.
-2. **Enhance the detection of real, meaningful motion**, such as moving objects within the scene.
-
-This suppression allows for better performance in tasks like object tracking, scene understanding, or navigation, particularly in robotics and autonomous systems, where distinguishing between self-motion and external motion is crucial.
-
-### Approach in this Project
-
-This project uses a neural network-based method to process event-based data and suppress egomotion by:
-- **Analyzing motion patterns** across multiple frames to distinguish consistent background motion (egomotion) from sporadic object motion.
-- **Applying running statistics** (mean, variance, standard deviation) to adaptively learn and subtract egomotion from the event data.
-- **Using a multi-scale pyramid structure**, where different resolutions are processed to ensure egomotion suppression is effective at various scales of motion.
-
-By applying these techniques, the project aims to effectively suppress egomotion while preserving meaningful motion signals from the scene.
-
-## Data Download
-
-You can download the necessary event-based data for this project from the following link:
-
-- [Download Event-Based Data](https://www.dropbox.com/scl/fo/rbxtjaar1evhe6vnvrp7e/AC-g2YvSKrYdmbHqVuExflM?rlkey=jrdj1qmwnj9gkdyqmdwz9aguo&st=ucpl34q4&dl=0)
-
-## Installation
-
-1. **Clone the repository**:
-    ```sh
-    git clone https://github.com/GiuliaDAngelo/Speckegomotion.git
-    cd Speckegomotion
-    ```
-
-2. **Create a virtual environment** (optional but recommended):
-    ```sh
-    python3 -m venv venv
-    source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-    ```
-
-3. **Install the required dependencies**:
-    ```sh
-    pip install -r requirements.txt
-    ```
-
-4. **Download the event-based data** (if not already done):
-    ```markdown
-    You can download the necessary event-based data for this project from the following link:
-    [Download Event-Based Data](https://www.dropbox.com/scl/fo/rbxtjaar1evhe6vnvrp7e/AC-g2YvSKrYdmbHqVuExflM?rlkey=jrdj1qmwnj9gkdyqmdwz9aguo&st=ucpl34q4&dl=0)
-    ```
-
-5. **Run the main script**:
-    ```sh
-    python main.py
-    ```
-
+Active vision provides a dynamic and robust approach to visual perception, presenting a compelling alternative for robotics to the static and passive nature of feedforward architectures commonly employed in state-of-the-art computer vision. Traditional approaches often rely on training large datasets and demand significant computational resources. Selective attention mechanisms, inspired by biological mechanisms, allow agents to focus on salient areas within their visual field, processing only Regions of Interest (ROIs). This targeted approach significantly reduces computational demand while preserving real-time responsiveness.
+Event-based cameras, inspired by the mammalian retina, further enhance this capability by capturing asynchronous changes in a scene, facilitating efficient, low-latency visual processing. To distinguish moving objects while the event-based camera is also in motion within a dynamic scene, the agent requires an object motion segmentation mechanism to accurately detect targets and position them at the center of the visual field (the fovea) through saccadic movements.
+Integrating event-based sensors with neuromorphic algorithms represents a paradigm shift, using Spiking Neural Networks (SNNs) to parallelize computation and adapt to dynamic environments. This work presents a Spiking Convolutional Neural Network (sCNN) bioinspired attention system for selective attention through object motion sensitivity
+The system generates events through fixational eye movements using a Dynamic Vision Sensor (DVS) integrated into the Speck neuromorphic hardware, mounted on a Pan-Tilt unit, to identify the region of interest (ROI) and then performs a saccade to shift the fovea toward it
+The system, characterised using ideal gratings and benchmarked against the Event Camera Motion Segmentation Dataset (EVIMO), achieves a mean Intersection over Union (IoU) of 82.2\% and a mean Structural Similarity Index Measure (SSIM) of 96\% in multi-object motion segmentation. Additionally, it reaches an object detection accuracy of 88.8\% in office scenarios and 89.8\% in challenging indoor and outdoor low-light conditions, as evaluated on the Event-Assisted Low-Light Video Object Segmentation Dataset (LLE-VOS). 
+A real-time demonstrator showcases the system's capabilities of detecting salient objects through object motion sensitivity in $0.04$ s in dynamic scenes.
+Its learning-free design ensures robustness across diverse perceptual scenes, making it a reliable foundation for real-time robotic applications and serving as a basis for more complex architectures.
