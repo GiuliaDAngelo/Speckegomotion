@@ -32,7 +32,7 @@ import matplotlib
 # tkagg
 matplotlib.use('TkAgg')
 
-global microsaccades, rnd, alpha, serial_port, baud_rate, ser, dxs, dys, meanxs, meanys, latency
+global microsaccades, rnd, alpha, serial_port, baud_rate, ser, dxs, dys, meanxs, meanys, latency, latency_attention
 
 @dataclass
 class Flags:
@@ -93,6 +93,7 @@ def perform_attention_with_pan_tilt(
     while not flags.halt.is_set():
         # time.sleep(0.2)
         # compute attention
+        start_time_attention = time.time()
         saliency_map[:], salmax_coords[:] = run_attention(vSliceOMS, net_attention, device, resolution,
                                                           size_krn_after_oms, num_pyr=3)
 
@@ -112,6 +113,7 @@ def perform_attention_with_pan_tilt(
         # make a check if pan_angle and tilt_angle are within the range
         pan_angle = np.clip(delta_pan, pan_range[0], pan_range[1]).astype(int)
         tilt_angle = np.clip(delta_tilt, tilt_range[0], tilt_range[1]).astype(int)
+        latency_attention.append(time.time() - start_time_attention)
 
         logger.info(
             f"Moving | pan (salmax, cmd, delta): {salmax_coords[1], cmd[1], delta_pan} | tilt (salmax, cmd, delta): {salmax_coords[0], cmd[0], delta_tilt} | pan_angle: {pan_angle} / {pan_range} | tilt_angle {tilt_angle} / {tilt_range}")
@@ -174,7 +176,7 @@ def visualiser(dxs, dys):
 if __name__ == "__main__":
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
-    microsaccades = 14
+    microsaccades = 8
     rnd = np.random.uniform(-60, 60, microsaccades).astype(np.int32)
     alpha = 3.1
     # Define the serial port and settings
@@ -186,6 +188,7 @@ if __name__ == "__main__":
     dxs, dys = [], []
     meanxs, meanys = [], []
     latency = []
+    latency_attention = []
 
     ##### egomotion #####
     # Initialize OMS
@@ -235,7 +238,7 @@ if __name__ == "__main__":
     salmax_coords = np.zeros((2,), dtype=np.int32)
     cmd = np.zeros((2,), dtype=np.int32)
     counter = 0
-    trials = 5300
+    trials = 300
     end_trials = trials * 10
 
     # Starting attention thread
@@ -269,8 +272,10 @@ if __name__ == "__main__":
                 if counter >= end_trials:
                     print('All trials dys mean: {:.2f}'.format(np.mean(meanys)), 'All trials dxs mean: {:.2f}'.format(np.mean(meanxs)))
                     print('All trials dys std: {:.2f}'.format(np.std(meanys)), 'All trials dxs std: {:.2f}'.format(np.std(meanxs)))
-                    print('Mean latency: {:.2f}'.format(np.std(latency)),
-                          'Std latency: {:.2f}'.format(np.std(latency)))
+                    print('Mean latency: {:.4f}'.format(np.mean(latency)),
+                          'Std latency: {:.4f}'.format(np.std(latency)))
+                    print('Mean latency attention: {:.2f}'.format(np.mean(latency_attention)),
+                          'Std latency: {:.2f}'.format(np.std(latency_attention)))
                     pan_command = f'PP{0}\n'
                     tilt_command = f'TP{0}\n'
                     # Send the pan and tilt commands
@@ -292,12 +297,14 @@ if __name__ == "__main__":
                         # computing egomotion
                         OMS, indexes = egomotion(wOMS, net_center, net_surround, device, config.MAX_Y,
                                                  config.MAX_X, config.OMS_PARAMS['threshold'])
+
                         # prepare vSliceOMS
                         vSliceOMS[:] = OMS.squeeze(0)
                         OMS = OMS.squeeze(0).squeeze(0).cpu().detach().numpy()
                         numevs[0] += len(events)
-                        visualiser(dxs, dys)
                         latency.append(time.time() - start_time)
+                        visualiser(dxs, dys)
+
                 else:
                     logger.info("No events, exiting...")
                     flags.halt.set()
