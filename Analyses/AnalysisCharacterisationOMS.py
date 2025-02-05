@@ -1,14 +1,35 @@
+
+
 import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 
 import matplotlib
+from sympy.strategies.tree import allresults
+
 matplotlib.use('TkAgg')
 
+allresultsFLAG = True
+kernelsigmaFLAG = False
+kernelsizeFLAG = False
 
-# respath = '/Users/giuliadangelo/workspace/code/Speckegomotion/results/resultsegoobjegoonlyobj/'
-respath = '/Users/giuliadangelo/workspace/code/Speckegomotion/results_characterisationOMS/OMSres/objegokernel/'
+
+
+
+if allresultsFLAG:
+    # respath = '/Users/giuliadangelo/workspace/code/Speckegomotion/results/resultsegoobjegoonlyobj/'
+    respath = '/Users/giuliadangelo/workspace/code/Speckegomotion/results_characterisationOMS/OMSres/resultsegoobjegoonlyobj/'
+    order = [2, 4, 1, 5, 7, 8, 9, 6, 3] #resultsegoobjegoonlyobj
+if kernelsigmaFLAG:
+    respath = '/Users/giuliadangelo/workspace/code/Speckegomotion/results_characterisationOMS/OMSres/objegokernel/'
+    # order = [2, 3, 6, 7, 4, 5, 8, 0, 1] #objegokernel
+    order = [2, 3, 6, 7, 5, 8] #objegokernel sigma
+if kernelsizeFLAG:
+    respath = '/Users/giuliadangelo/workspace/code/Speckegomotion/results_characterisationOMS/OMSres/objegokernel/'
+    order = [2, 0, 1] #objegokernel kernel size
+
+
 
 
 
@@ -22,21 +43,15 @@ time_wnd_frames= 0.01834
 
 
 pos = 0
-# order = [2, 4, 1, 5, 7, 8, 9, 6, 3] #resultsegoobjegoonlyobj
-
-# order = [2, 3, 6, 7, 4, 5, 8, 0, 1] #objegokernel
-order = [2, 3, 6, 7, 5, 8] #objegokernel sigma
-# order = [2, 0, 1] #objegokernel kernel size
-
-
 
 x = np.arange(len(order)*2)
-plt.figure(figsize=(10, 8))
-for i in range(0, len(order)):
-    # num = order.index(i)
-    # dir = dirs_exp[num]
-
-    dir = dirs_exp[order[i]]
+plt.figure(figsize=(15, 15))
+for i in range(1, len(order)+1):
+    if allresultsFLAG:
+        num = order.index(i)
+        dir = dirs_exp[num]
+    if kernelsizeFLAG or kernelsigmaFLAG:
+        dir = dirs_exp[order[i]]
     with open(respath+dir+'/spikes.pkl', 'rb') as f:
         spikes = pickle.load(f)
 
@@ -62,26 +77,47 @@ for i in range(0, len(order)):
     meanMFRNeurons = np.mean(MFRneuron)
     meanstdMFRNeurons = np.std(MFRneuron)
     # Plot histogram with error bars
-    plt.bar(pos, meanMFRNeurons, yerr=meanstdMFRNeurons, capsize=5, alpha=0.7, color='white', edgecolor='black')
-    plt.bar(pos+1, meanISINeurons, yerr=meanstdISINeurons, capsize=5, alpha=0.7, color='lightcoral', edgecolor='black')
-    pos+=2
+    # plt.bar(pos, meanMFRNeurons, yerr=meanstdMFRNeurons, capsize=5, alpha=0.7, color='white', edgecolor='black')
+    # plt.bar(pos+1, meanISINeurons, yerr=meanstdISINeurons, capsize=5, alpha=0.7, color='lightcoral', edgecolor='black')
+    # pos+=2
+    # Compute lower and upper error bars
+    lower_mfr = np.maximum(0, meanMFRNeurons - meanstdMFRNeurons)
+    upper_mfr = meanstdMFRNeurons
 
+    lower_isi = np.maximum(0, meanISINeurons - meanstdISINeurons)
+    upper_isi = meanstdISINeurons
 
+    # Convert yerr into correct shape (2, n) where n is the number of bars
+    yerr_mfr = np.vstack([meanMFRNeurons - lower_mfr, upper_mfr])
+    yerr_isi = np.vstack([meanISINeurons - lower_isi, upper_isi])
+
+    plt.bar(pos, meanMFRNeurons,
+            yerr=yerr_mfr, capsize=5, alpha=0.7, color='white', edgecolor='black')
+
+    plt.bar(pos+1, meanISINeurons,
+            yerr=yerr_isi, capsize=5, alpha=0.7, color='lightcoral', edgecolor='black')
+
+    pos += 2
 fontsize = 22
-# labels = ['   1', '', '    2', '', '   3', '', '   4','', '   5','', '   6','', '   7', '', '   8', '','   9', '']
-# labels = ['   sc1ss4krn8', '', '    sc2ss4krn8', '', '   sc3ss4krn8', '', '   sc4ss4krn8','', '   sc2ss6krn8','', '   sc2ss8krn8','', '   sc4ss8krn8', '', '   sc4ss8krn16', '','   sc8ss16krn32', ''] # Custom x-axis labels
 
-
-labels = ['     σc=1,σs=4', ' ', '      σc=2,σs=4', ' ', '      σc=3,σs=4', ' ', '     σc=4,σs=4',' ', '     σc=2,σs=8',' ', '     σc=4,σs=8', ' '] # Custom x-axis labels
-# labels = ['            σc=2,σs=4; s=8', ' ', '            σc=4,σs=8; s=16', ' ', '            σc=8,σs=16; s=32', ' '] # Custom x-axis labels
-
+if allresultsFLAG:
+    labels = ['1', '', '2', '',  '3', '', '4', '',  '5', '', '6', '', '7', '', '8', '', '9', '']
+    # labels = ['   sc1ss4krn8', '', '    sc2ss4krn8', '', '   sc3ss4krn8', '', '   sc4ss4krn8','', '   sc2ss6krn8','', '   sc2ss8krn8','', '   sc4ss8krn8', '', '   sc4ss8krn16', '','   sc8ss16krn32', ''] # Custom x-axis labels
+if kernelsigmaFLAG:
+    labels = ['σc=1,σs=4', '', 'σc=2,σs=4', '', 'σc=3,σs=4', '', 'σc=4,σs=4', '',
+              'σc=2,σs=8', '', 'σc=4,σs=8', '']  # Custom x-axis labels
+if kernelsizeFLAG:
+    labels = ['σc=2,σs=4; s=8', '', 'σc=4,σs=8; s=16', '', 'σc=8,σs=16; s=32', '']  # Custom x-axis labels
 
 # Customize the plot  # Set custom x-axis labels
 # plt.xlabel('Experiment',fontsize=fontsize)
 # plt.ylabel('Values')
 # plt.title('Mean with Standard Deviation as Error Bars')
 plt.legend(['MFR [Hz]', 'ISI [s]'], fontsize=fontsize)
-plt.xticks(x, labels, fontsize=fontsize)
+# plt.xticks(x, labels, fontsize=fontsize)
+# Set labels with spacing
+plt.xticks(x + 0.6, labels, rotation=0, ha='right', fontsize=fontsize)  # Shift labels
+plt.tick_params(axis='x', which='both', bottom=False, top=False)  # Hide x-ticks
 plt.yticks(fontsize=fontsize) # Set custom x-axis labels
 plt.show()
 
