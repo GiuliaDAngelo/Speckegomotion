@@ -238,7 +238,7 @@ if __name__ == "__main__":
     salmax_coords = np.zeros((2,), dtype=np.int32)
     cmd = np.zeros((2,), dtype=np.int32)
     counter = 0
-    trials = 300
+    trials = 1000
     end_trials = trials * 10
 
     # Starting attention thread
