@@ -10,9 +10,9 @@ from sympy.strategies.tree import allresults
 
 matplotlib.use('TkAgg')
 
-allresultsFLAG = True
+allresultsFLAG = False
 kernelsigmaFLAG = False
-kernelsizeFLAG = False
+kernelsizeFLAG = True
 
 
 
@@ -21,14 +21,20 @@ if allresultsFLAG:
     # respath = '/Users/giuliadangelo/workspace/code/Speckegomotion/results/resultsegoobjegoonlyobj/'
     respath = '/Users/giuliadangelo/workspace/code/Speckegomotion/results_characterisationOMS/OMSres/resultsegoobjegoonlyobj/'
     order = [2, 4, 1, 5, 7, 8, 9, 6, 3] #resultsegoobjegoonlyobj
+    rng = 1
+    end_rng = len(order)+1
+
 if kernelsigmaFLAG:
     respath = '/Users/giuliadangelo/workspace/code/Speckegomotion/results_characterisationOMS/OMSres/objegokernel/'
     # order = [2, 3, 6, 7, 4, 5, 8, 0, 1] #objegokernel
     order = [2, 3, 6, 7, 5, 8] #objegokernel sigma
+    rng = 0
+    end_rng = len(order)
 if kernelsizeFLAG:
     respath = '/Users/giuliadangelo/workspace/code/Speckegomotion/results_characterisationOMS/OMSres/objegokernel/'
     order = [2, 0, 1] #objegokernel kernel size
-
+    rng = 0
+    end_rng = len(order)
 
 
 
@@ -46,7 +52,7 @@ pos = 0
 
 x = np.arange(len(order)*2)
 plt.figure(figsize=(15, 15))
-for i in range(1, len(order)+1):
+for i in range(rng, end_rng):
     if allresultsFLAG:
         num = order.index(i)
         dir = dirs_exp[num]
@@ -97,26 +103,33 @@ for i in range(1, len(order)+1):
     plt.bar(pos+1, meanISINeurons,
             yerr=yerr_isi, capsize=5, alpha=0.7, color='lightcoral', edgecolor='black')
 
+
     pos += 2
 fontsize = 22
 
 if allresultsFLAG:
     labels = ['1', '', '2', '',  '3', '', '4', '',  '5', '', '6', '', '7', '', '8', '', '9', '']
     # labels = ['   sc1ss4krn8', '', '    sc2ss4krn8', '', '   sc3ss4krn8', '', '   sc4ss4krn8','', '   sc2ss6krn8','', '   sc2ss8krn8','', '   sc4ss8krn8', '', '   sc4ss8krn16', '','   sc8ss16krn32', ''] # Custom x-axis labels
+    plt.xlabel('Experiment',fontsize=fontsize)
+    plt.ylabel('Mean MFR [Hz] &  Mean ISI [Hz]', fontsize=fontsize)
+    rot = 0
+
 if kernelsigmaFLAG:
     labels = ['σc=1,σs=4', '', 'σc=2,σs=4', '', 'σc=3,σs=4', '', 'σc=4,σs=4', '',
               'σc=2,σs=8', '', 'σc=4,σs=8', '']  # Custom x-axis labels
+    plt.ylabel('Mean MFR [Hz] &  Mean ISI [Hz]', fontsize=fontsize)
+    rot=15
+
 if kernelsizeFLAG:
     labels = ['σc=2,σs=4; s=8', '', 'σc=4,σs=8; s=16', '', 'σc=8,σs=16; s=32', '']  # Custom x-axis labels
+    plt.ylabel('Mean MFR [Hz] &  Mean ISI [Hz]', fontsize=fontsize)
+    rot = 10
 
 # Customize the plot  # Set custom x-axis labels
-# plt.xlabel('Experiment',fontsize=fontsize)
-# plt.ylabel('Values')
-# plt.title('Mean with Standard Deviation as Error Bars')
-plt.legend(['MFR [Hz]', 'ISI [s]'], fontsize=fontsize)
+plt.legend(['MFR', 'ISI'], fontsize=fontsize)
 # plt.xticks(x, labels, fontsize=fontsize)
 # Set labels with spacing
-plt.xticks(x + 0.6, labels, rotation=0, ha='right', fontsize=fontsize)  # Shift labels
+plt.xticks(x + 0.6, labels, rotation=rot, ha='right', fontsize=fontsize)  # Shift labels
 plt.tick_params(axis='x', which='both', bottom=False, top=False)  # Hide x-ticks
 plt.yticks(fontsize=fontsize) # Set custom x-axis labels
 plt.show()
