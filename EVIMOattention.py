@@ -42,7 +42,7 @@ class Config:
         'random_init': False,
         'lif_tau': 0.1
     }
-    SHOWIMGS = False
+    SHOWIMGS = True
     maxBackgroundRatio = 2
     DEVICE = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 
@@ -105,6 +105,7 @@ evpath = evimofld + 'EVIMOevents/'
 maskpath = evimofld + 'EVIMOmasks/'
 maskfrpath = evimofld + 'EVIMOmasksframes/'
 resultspath = evimofld + 'ATT/'
+resultspath = evimofld + 'ATTnew/'
 
 # look at dirs whitin the path
 dirs_events = [d for d in os.listdir(evpath) if os.path.isdir(os.path.join(evpath, d))]
@@ -112,7 +113,7 @@ dirs_events = [d for d in os.listdir(evpath) if os.path.isdir(os.path.join(evpat
 
 config = Config()
 for dir in dirs_events:
-    if dir == 'wall' or dir == 'box' or dir == 'fast' or dir == 'floor' or dir == 'tabletop':
+    if dir == 'table' or dir == 'box' or dir == 'fast' or dir == 'floor' or dir == 'tabletop':
         continue
     npz = '/npz/'
     #look at files in the dir
@@ -150,6 +151,7 @@ for dir in dirs_events:
         for evframe_pos, evframe_neg in zip(evframes_pos, evframes_neg):
             if i < len(timestamps) and time >= timestamps[i]:
                 #split in polarities
+                window = evframe_pos + evframe_neg
                 curr_frame_pos = (evframe_pos[0] != 0.00).clone().detach().to(torch.int)
                 curr_frame_neg = (evframe_neg[0] != 0.00).clone().detach().to(torch.int)
 
@@ -159,6 +161,14 @@ for dir in dirs_events:
                     # Load mask data
                     mask = evmaskdata[i]
 
+                # window = (window[0] != 0.00).clone().detach().to(torch.int)
+                # OMS, indexes, center, surround = egomotion(window, net_center, net_surround, config.DEVICE, max_y, max_x,
+                #                                  config.OMS_PARAMS['threshold'])
+                # cv2.imshow('center map', center[0].cpu().detach().numpy())
+                # cv2.imshow('surround map', surround[0].cpu().detach().numpy())
+                # cv2.imshow('Events map', window.cpu().detach().numpy().astype(np.uint8)*255)
+                # cv2.imshow('OMS map', OMS[0].cpu().detach().numpy())
+                # cv2.waitKey(1)
                 # Compute OMS for polarities
                 OMS_pos, indexes_pos = egomotion(curr_frame_pos, net_center, net_surround, config.DEVICE, max_y, max_x,config.OMS_PARAMS['threshold'])
                 OMS_neg, indexes_neg = egomotion(curr_frame_neg, net_center, net_surround, config.DEVICE, max_y, max_x,config.OMS_PARAMS['threshold'])

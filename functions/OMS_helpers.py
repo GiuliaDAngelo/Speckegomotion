@@ -2,6 +2,11 @@ import sinabs.layers as sl
 import torch
 import torch.nn as nn
 import os
+import cv2
+import matplotlib
+import numpy as np
+
+matplotlib.use('TkAgg')
 
 
 
@@ -17,7 +22,8 @@ def gaussian_kernel(size, sigma):
     y = torch.linspace(-size // 2, size // 2, size)
     x, y = torch.meshgrid(x, y, indexing='ij')  # Ensure proper indexing for 2D arrays
     # Create a Gaussian kernel
-    kernel = torch.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2))
+    # kernel = torch.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2))
+    kernel = torch.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2))/ (2 * np.pi * sigma ** 2)
     # Normalize the kernel so that the values are between 0 and 1
     kernel = (kernel - kernel.min()) / (kernel.max() - kernel.min())
     return kernel
@@ -57,10 +63,6 @@ def egomotion(window, net_center, net_surround, device, max_y, max_x,threshold):
     # axs[1].cla()
     # axs[2].cla()
     # axs[3].cla()
-    # axs[0].imshow(center[0].cpu().detach().numpy(), cmap='gray', vmin=0, vmax=255)
-    # axs[1].imshow(surround[0].cpu().detach().numpy(), cmap='gray', vmin=0, vmax=255)
-    # axs[2].imshow(events[0].cpu().detach().numpy(), cmap='gray', vmin=0, vmax=255)
-    # axs[3].imshow(OMS[0].cpu().detach().numpy(), cmap='gray', vmin=0, vmax=255)
     # plt.draw()
     # plt.pause(0.001)
     return OMS, indexes
