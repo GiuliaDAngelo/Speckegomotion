@@ -89,7 +89,9 @@ class Config:
 
     # FILE_PATH = '/Users/giuliadangelo/workspace/data/DATASETs/IROS_attention/calib_circles/calibration_circles/ATIS/'
     # FILE_PATH = '/Users/giuliadangelo/workspace/data/DATASETs/IROS_attention/v_frames/object_clutter2/ATIS/'
-    FILE_PATH = '/Users/giuliadangelo/workspace/data/DATASETs/IROS_attention/v_frames/object_clutter/ATIS/'
+    # FILE_PATH = '/Users/giuliadangelo/workspace/data/DATASETs/IROS_attention/v_frames/object_clutter/ATIS/'
+    FILE_PATH = '/Users/giuliadangelo/Downloads/attention-multiobjects/'
+
     # FILE_PATH = '/Users/giuliadangelo/workspace/data/DATASETs/IROS_attention/calibration/no_obj/ATIS/'
     # FILE_PATH = '/Users/giuliadangelo/workspace/data/DATASETs/IROS_attention/calibration/obj/ATIS/'
     EXP = FILE_PATH.split('/ATIS/')[0].split('/')[-1]

@@ -11,9 +11,8 @@ import torch.nn.functional as F
 
 def run_attention(window, net, device, resolution, size_krn_after_oms, num_pyr):
     # Create resized versions of the frames
-    resized_frames = [torchvision.transforms.Resize((int(resolution[0] / num_pyr), int(resolution[1] / num_pyr)))(
+    resized_frames = [torchvision.transforms.Resize((int(resolution[1] / pyr), int(resolution[0] / pyr)))(
         window) for pyr in range(1, num_pyr + 1)]
-
     # Process frames in batches
     batch_frames = torch.stack(
         [torchvision.transforms.Resize((resolution[0], resolution[1]))(window) for window in resized_frames]).type(torch.float32)
