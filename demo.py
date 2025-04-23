@@ -94,7 +94,7 @@ def perform_attention_with_pan_tilt(
         # time.sleep(0.2)
         # compute attention
         start_time_attention = time.time()
-        saliency_map[:], salmax_coords[:] = run_attention(vSliceOMS, net_attention, device, resolution,
+        saliency_map[:], salmax_coords[:] = run_attentiondemo(vSliceOMS, net_attention, device, resolution,
                                                           size_krn_after_oms, num_pyr=3)
 
         # cmds values are between -1 and 1

@@ -9,10 +9,11 @@ import torchvision
 import torch.nn.functional as F
 
 
-def run_attention(window, net, device, resolution, size_krn_after_oms, num_pyr):
+def run_attentiondemo(window, net, device, resolution, size_krn_after_oms, num_pyr):
     # Create resized versions of the frames
-    resized_frames = [torchvision.transforms.Resize((int(resolution[1] / pyr), int(resolution[0] / pyr)))(
-        window) for pyr in range(1, num_pyr + 1)]
+    resized_frames = [
+        torchvision.transforms.Resize((int(resolution[0] / pyr), int(resolution[1] / pyr)), antialias=False)(
+            window.cpu()) for pyr in range(1, num_pyr + 1)]
     # Process frames in batches
     batch_frames = torch.stack(
         [torchvision.transforms.Resize((resolution[0], resolution[1]))(window) for window in resized_frames]).type(torch.float32)
@@ -24,7 +25,28 @@ def run_attention(window, net, device, resolution, size_krn_after_oms, num_pyr):
     salmax_coords = np.unravel_index(torch.argmax(salmap).cpu().numpy(), salmap.shape)
     # normalise salmap for visualization
     salmap = salmap.detach().cpu().numpy()
-    salmap = np.array((salmap - salmap.min()) / (salmap.max() - salmap.min()) * 255)
+    salmap = ((salmap - salmap.min()) / (salmap.max() - salmap.min())) * 255
+    return salmap,salmax_coords
+
+
+def run_attention(window, net, device, resolution, size_krn_after_oms, num_pyr):
+    # Create resized versions of the frames
+    resized_frames = [
+        torchvision.transforms.Resize((int(resolution[0] / pyr), int(resolution[1] / pyr)), antialias=False)(
+            window.cpu()) for pyr in range(1, num_pyr + 1)]
+    # Process frames in batches
+    batch_frames = torch.stack(
+        [torchvision.transforms.Resize((resolution[0], resolution[1]))(window) for window in resized_frames]).type(torch.float32)
+    batch_frames = batch_frames.to(device)  # Move to GPU if available
+    output_rot = net(batch_frames)
+    # Sum the outputs over rotations and scales
+    output_rot_sum = torch.sum(torch.sum(output_rot, dim=1, keepdim=True), dim=0, keepdim=True).type(torch.float32).cpu().detach()
+    # salmap = torchvision.transforms.Resize((size_krn_after_oms, size_krn_after_oms))(output_rot_sum).squeeze(0).squeeze(0)
+    salmap = output_rot_sum.squeeze().squeeze(0)
+    salmax_coords = np.unravel_index(torch.argmax(salmap).cpu().numpy(), salmap.shape)
+    # normalise salmap for visualization
+    salmap = salmap.detach().cpu().numpy()
+    salmap = ((salmap - salmap.min()) / (salmap.max() - salmap.min())) * 255
     return salmap,salmax_coords
 
 
