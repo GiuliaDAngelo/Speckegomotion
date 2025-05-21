@@ -149,8 +149,8 @@ class Config:
     }
     salmax_coords = np.zeros((2,), dtype=np.int32)
     DATA_PARAMS = {
-        'TIME_WINDOW': 1000, #10 ms #1 ms is 100 steps
-        'SCAN_PATH': 12400 #120 ms
+        'TIME_WINDOW': 12000, #10 ms #1 ms is 100 steps
+        'SCAN_PATH': 12000 #120 ms
     }
 
 
